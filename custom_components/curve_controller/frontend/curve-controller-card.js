@@ -863,7 +863,7 @@ if (!customElements.get("curve-controller-card")) {
   });
 
   console.info(
-    `%c CURVE-CONTROLLER-CARD %c Version 1.0.0 `,
+    `%c CURVE-CONTROLLER-CARD %c Version 1.0.1 `,
     "color: white; background: #03a9f4; font-weight: 700; border-radius: 3px 0 0 3px;",
     "color: #03a9f4; background: #e1f5fe; font-weight: 700; border-radius: 0 3px 3px 0;"
   );
