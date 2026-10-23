@@ -1,6 +1,7 @@
 /**
  * Curve Controller Card for Home Assistant Lovelace
  * Custom Web Component for visualizing and interactively editing piecewise linear curves.
+ * Version 1.1.0
  */
 
 class CurveControllerCard extends HTMLElement {
@@ -13,11 +14,17 @@ class CurveControllerCard extends HTMLElement {
     this._editedPoints = null;
     this._statusMessage = "";
     this._statusTimeout = null;
+    this._initialized = false;
+    this._lastActiveCurve = null;
   }
 
   set hass(hass) {
     this._hass = hass;
-    this._render();
+    if (!this._initialized) {
+      this._buildCard();
+      this._initialized = true;
+    }
+    this._updateState();
   }
 
   setConfig(config) {
@@ -25,6 +32,10 @@ class CurveControllerCard extends HTMLElement {
       title: "Contrôleur de Courbe",
       ...config,
     };
+    if (this._initialized) {
+      this._buildCard();
+      this._updateState();
+    }
   }
 
   getCardSize() {
@@ -69,6 +80,23 @@ class CurveControllerCard extends HTMLElement {
     return null;
   }
 
+  _getUnits(attrs) {
+    let sourceUnit = attrs.source_unit || "";
+    let targetUnit = attrs.target_unit || "";
+
+    if (!sourceUnit && attrs.source_entity && this._hass && this._hass.states[attrs.source_entity]) {
+      sourceUnit = this._hass.states[attrs.source_entity].attributes?.unit_of_measurement || "";
+    }
+    if (!targetUnit && attrs.target_entity && this._hass && this._hass.states[attrs.target_entity]) {
+      const tgtState = this._hass.states[attrs.target_entity];
+      targetUnit = tgtState.attributes?.unit_of_measurement || "";
+      if (!targetUnit && attrs.target_entity.startsWith("climate.")) {
+        targetUnit = tgtState.attributes?.temperature_unit || "°C";
+      }
+    }
+    return { sourceUnit, targetUnit };
+  }
+
   _interpolate(points, x) {
     if (!points || points.length === 0) return 0;
     const sorted = [...points].sort((a, b) => a[0] - b[0]);
@@ -91,24 +119,29 @@ class CurveControllerCard extends HTMLElement {
 
   _showMessage(msg, isError = false) {
     if (this._statusTimeout) clearTimeout(this._statusTimeout);
-    this._statusMessage = `<div class="status-msg ${isError ? "error" : "success"}">${msg}</div>`;
-    this._render();
-    this._statusTimeout = setTimeout(() => {
-      this._statusMessage = "";
-      this._render();
-    }, 4000);
+    const container = this.shadowRoot.getElementById("status-container");
+    if (container) {
+      container.innerHTML = `<div class="status-msg ${isError ? "error" : "success"}">${msg}</div>`;
+      this._statusTimeout = setTimeout(() => {
+        container.innerHTML = "";
+      }, 4000);
+    }
   }
 
   async _saveCurrentCurve(entryId, curveName, points, setActive = false) {
     try {
+      // Validate and clean points
+      const cleaned = points.map(p => [parseFloat(p[0]) || 0, parseFloat(p[1]) || 0]);
       await this._hass.callService("curve_controller", "save_curve", {
         entry_id: entryId,
         curve_name: curveName,
-        points: points,
+        points: cleaned,
         set_active: setActive,
       });
       this._showMessage(`Courbe "${curveName}" enregistrée avec succès !`);
       this._editedPoints = null;
+      this._renderPointsTable();
+      this._updateSvgGraph();
     } catch (err) {
       console.error(err);
       this._showMessage(`Erreur lors de la sauvegarde : ${err.message || err}`, true);
@@ -128,6 +161,20 @@ class CurveControllerCard extends HTMLElement {
     }
   }
 
+  async _toggleRegulation(entryId, currentState) {
+    try {
+      const newState = !currentState;
+      await this._hass.callService("curve_controller", "set_regulation", {
+        entry_id: entryId,
+        enabled: newState,
+      });
+      this._showMessage(newState ? "Régulation activée !" : "Régulation suspendue (consigne figée).");
+    } catch (err) {
+      console.error(err);
+      this._showMessage(`Erreur régulation : ${err.message || err}`, true);
+    }
+  }
+
   async _deleteCurve(entryId, curveName) {
     if (!confirm(`Confirmer la suppression définitive de la courbe "${curveName}" ?`)) return;
     try {
@@ -138,286 +185,99 @@ class CurveControllerCard extends HTMLElement {
       this._selectedCurve = null;
       this._editedPoints = null;
       this._showMessage(`Courbe "${curveName}" supprimée.`);
+      this._buildCard();
+      this._updateState();
     } catch (err) {
       console.error(err);
       this._showMessage(`Erreur : ${err.message || err}`, true);
     }
   }
 
-  _render() {
-    if (!this.shadowRoot) return;
-
-    const entityState = this._getTargetEntity();
-    if (!entityState) {
-      this.shadowRoot.innerHTML = `
-        <ha-card>
-          <div class="card-content warning">
-            <h3>Curve Controller</h3>
-            <p>Aucune entité Curve Controller détectée ou configurée.</p>
-            <small>Veuillez spécifier <code>entity: sensor.curve_controller_...</code> dans la configuration de la carte.</small>
-          </div>
-        </ha-card>
-        ${this._getStyles()}
-      `;
-      return;
-    }
-
-    const attrs = entityState.attributes || {};
-    const entryId = attrs.entry_id;
-    const curves = attrs.curves || {};
-    const activeCurve = attrs.active_curve || "";
-    const sourceValue = typeof attrs.source_value === "number" ? attrs.source_value : null;
-    const calculatedValue = typeof attrs.calculated_value === "number" ? attrs.calculated_value : null;
-    const sourceEntityId = attrs.source_entity || "Source";
-    const targetEntityId = attrs.target_entity || "Cible";
-
-    const curveNames = Object.keys(curves);
-    if (!this._selectedCurve || !curves[this._selectedCurve]) {
-      this._selectedCurve = activeCurve && curves[activeCurve] ? activeCurve : curveNames[0] || "";
-    }
-
-    const currentPoints = this._editedPoints !== null
-      ? this._editedPoints
-      : (curves[this._selectedCurve] ? curves[this._selectedCurve].map(pt => [...pt]) : []);
-
-    const isCurrentActive = (this._selectedCurve === activeCurve);
-    const hasUnsavedChanges = this._editedPoints !== null;
-
-    // SVG graph bounds calculation
-    const allX = currentPoints.map(p => p[0]);
-    const allY = currentPoints.map(p => p[1]);
-    if (sourceValue !== null) allX.push(sourceValue);
-    if (calculatedValue !== null) allY.push(calculatedValue);
-
-    let minX = allX.length ? Math.min(...allX) : 0;
-    let maxX = allX.length ? Math.max(...allX) : 20;
-    let minY = allY.length ? Math.min(...allY) : 0;
-    let maxY = allY.length ? Math.max(...allY) : 50;
-
-    if (minX === maxX) { minX -= 5; maxX += 5; }
-    if (minY === maxY) { minY -= 5; maxY += 5; }
-
-    // Add 10% margins for aesthetic breathing room
-    const paddingX = (maxX - minX) * 0.1 || 2;
-    const paddingY = (maxY - minY) * 0.1 || 2;
-    minX -= paddingX;
-    maxX += paddingX;
-    minY -= paddingY;
-    maxY += paddingY;
-
-    // SVG viewport metrics
-    const svgWidth = 500;
-    const svgHeight = 240;
-    const margin = { top: 20, right: 30, bottom: 40, left: 50 };
-    const plotW = svgWidth - margin.left - margin.right;
-    const plotH = svgHeight - margin.top - margin.bottom;
-
-    const toSvgX = (x) => margin.left + ((x - minX) / (maxX - minX)) * plotW;
-    const toSvgY = (y) => margin.top + plotH - ((y - minY) / (maxY - minY)) * plotH;
-
-    // Build SVG Path for sorted points
-    const sorted = [...currentPoints].sort((a, b) => a[0] - b[0]);
-    let pathD = "";
-    let areaD = "";
-    if (sorted.length > 0) {
-      // Clamping left & right extensions in plot
-      const firstPt = sorted[0];
-      const lastPt = sorted[sorted.length - 1];
-
-      const p0x = toSvgX(minX);
-      const p0y = toSvgY(firstPt[1]);
-      pathD = `M ${p0x} ${p0y} L ${toSvgX(firstPt[0])} ${toSvgY(firstPt[1])}`;
-
-      sorted.forEach(pt => {
-        pathD += ` L ${toSvgX(pt[0])} ${toSvgY(pt[1])}`;
-      });
-
-      const pEndx = toSvgX(maxX);
-      const pEndy = toSvgY(lastPt[1]);
-      pathD += ` L ${pEndx} ${pEndy}`;
-
-      const bottomY = toSvgY(minY);
-      areaD = `${pathD} L ${pEndx} ${bottomY} L ${p0x} ${bottomY} Z`;
-    }
-
-    // Dynamic marker coordinates
-    let markerSvg = "";
-    if (sourceValue !== null && sorted.length > 0) {
-      const curY = this._interpolate(sorted, sourceValue);
-      const mx = toSvgX(sourceValue);
-      const my = toSvgY(curY);
-
-      markerSvg = `
-        <g class="current-marker">
-          <!-- Crosshair guides -->
-          <line x1="${mx}" y1="${toSvgY(minY)}" x2="${mx}" y2="${my}" stroke="var(--accent-color, #ff9800)" stroke-dasharray="4,4" stroke-width="1.5" opacity="0.8" />
-          <line x1="${margin.left}" y1="${my}" x2="${mx}" y2="${my}" stroke="var(--accent-color, #ff9800)" stroke-dasharray="4,4" stroke-width="1.5" opacity="0.8" />
-          
-          <!-- Pulsing effect -->
-          <circle cx="${mx}" cy="${my}" r="9" fill="var(--accent-color, #ff9800)" opacity="0.25">
-            <animate attributeName="r" values="6;13;6" dur="2s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0.4;0.05;0.4" dur="2s" repeatCount="indefinite" />
-          </circle>
-          <circle cx="${mx}" cy="${my}" r="5.5" fill="var(--accent-color, #ff9800)" stroke="#ffffff" stroke-width="2" />
-        </g>
-      `;
-    }
-
-    // Grid ticks
-    const numTicks = 5;
-    let gridLinesSvg = "";
-    let labelsSvg = "";
-
-    for (let i = 0; i <= numTicks; i++) {
-      // Y ticks
-      const valY = minY + (i / numTicks) * (maxY - minY);
-      const sy = toSvgY(valY);
-      gridLinesSvg += `<line x1="${margin.left}" y1="${sy}" x2="${svgWidth - margin.right}" y2="${sy}" stroke="var(--divider-color, rgba(125,125,125,0.2))" stroke-width="1" />`;
-      labelsSvg += `<text x="${margin.left - 8}" y="${sy + 4}" text-anchor="end" class="axis-label">${valY.toFixed(1)}</text>`;
-
-      // X ticks
-      const valX = minX + (i / numTicks) * (maxX - minX);
-      const sx = toSvgX(valX);
-      gridLinesSvg += `<line x1="${sx}" y1="${margin.top}" x2="${sx}" y2="${margin.top + plotH}" stroke="var(--divider-color, rgba(125,125,125,0.2))" stroke-width="1" />`;
-      labelsSvg += `<text x="${sx}" y="${margin.top + plotH + 18}" text-anchor="middle" class="axis-label">${valX.toFixed(1)}</text>`;
-    }
-
-    // SVG Points circles
-    const circlesSvg = sorted.map((pt, idx) => {
-      const cx = toSvgX(pt[0]);
-      const cy = toSvgY(pt[1]);
-      return `
-        <circle cx="${cx}" cy="${cy}" r="5" class="point-circle" data-idx="${idx}">
-          <title>Point ${idx + 1}: X=${pt[0]}, Y=${pt[1]}</title>
-        </circle>
-      `;
-    }).join("");
-
-    // Points table rows
-    const tableRows = currentPoints.map((pt, idx) => `
-      <tr>
-        <td class="idx-col">#${idx + 1}</td>
-        <td>
-          <input type="number" step="any" class="pt-input" data-idx="${idx}" data-field="0" value="${pt[0]}" />
-        </td>
-        <td>
-          <input type="number" step="any" class="pt-input" data-idx="${idx}" data-field="1" value="${pt[1]}" />
-        </td>
-        <td class="action-col">
-          <button class="btn-icon delete-btn" data-idx="${idx}" title="Supprimer ce point">✕</button>
-        </td>
-      </tr>
-    `).join("");
-
+  _buildCard() {
     this.shadowRoot.innerHTML = `
       <ha-card>
         <div class="card-header">
           <div class="header-title">
             <ha-icon icon="mdi:chart-bell-curve-cumulative" class="header-icon"></ha-icon>
-            <span>${this._config.title}</span>
+            <span id="card-title-text">${this._config.title}</span>
           </div>
-          <div class="header-status">
-            ${isCurrentActive
-              ? '<span class="badge active-badge"><ha-icon icon="mdi:check-circle"></ha-icon> ACTIVE</span>'
-              : `<button class="btn btn-outline activate-btn">Définir active</button>`}
+          <div class="header-controls">
+            <!-- Regulation Toggle Switch -->
+            <div class="regulation-toggle-wrapper" id="regulation-toggle-wrapper">
+              <span class="reg-label" id="reg-status-label">Régulation :</span>
+              <button class="toggle-switch-btn" id="reg-toggle-btn" title="Activer ou suspendre la régulation">
+                <span class="toggle-thumb"></span>
+              </button>
+            </div>
           </div>
         </div>
 
         <div class="card-content">
-          ${this._statusMessage}
+          <div id="status-container"></div>
 
-          <!-- Live stats bar -->
-          <div class="stats-bar">
-            <div class="stat-item">
-              <span class="stat-label">Entrée (${sourceEntityId})</span>
-              <span class="stat-val primary">${sourceValue !== null ? sourceValue + "°" : "N/A"}</span>
-            </div>
-            <div class="stat-arrow">➔</div>
-            <div class="stat-item">
-              <span class="stat-label">Consigne Cible (${targetEntityId})</span>
-              <span class="stat-val highlight">${calculatedValue !== null ? calculatedValue : "N/A"}</span>
-            </div>
+          <!-- Regulation Paused Warning Banner (hidden when active) -->
+          <div id="regulation-paused-banner" class="paused-banner" style="display: none;">
+            <ha-icon icon="mdi:pause-circle-outline"></ha-icon>
+            <span>Régulation suspendue — Les valeurs ne sont plus injectées sur la sortie.</span>
           </div>
 
-          <!-- Curve selector and actions -->
+          <!-- Curve selector toolbar -->
           <div class="toolbar">
             <div class="curve-select-wrapper">
-              <label for="curve-select">Profil de Courbe :</label>
-              <select id="curve-select" class="dropdown">
-                ${curveNames.map(c => `
-                  <option value="${c}" ${c === this._selectedCurve ? "selected" : ""}>
-                    ${c} ${c === activeCurve ? "★ (Active)" : ""}
-                  </option>
-                `).join("")}
-              </select>
+              <label for="curve-select">Profil :</label>
+              <select id="curve-select" class="dropdown"></select>
+              <span id="active-badge-container"></span>
             </div>
             <div class="toolbar-actions">
-              <button class="btn btn-sm" id="btn-new-curve">+ Nouveau</button>
-              ${curveNames.length > 1 ? `<button class="btn btn-sm btn-danger" id="btn-del-curve">Supprimer</button>` : ""}
+              <button class="btn btn-outline" id="btn-activate-curve" style="display: none;">Définir active</button>
+              <button class="btn btn-sm" id="btn-new-curve">+ Profil</button>
+              <button class="btn btn-sm btn-danger" id="btn-del-curve">✕</button>
             </div>
           </div>
 
           <!-- SVG Visual Chart -->
           <div class="chart-container">
-            <svg viewBox="0 0 ${svgWidth} ${svgHeight}" class="curve-svg">
+            <svg id="curve-svg" viewBox="0 0 520 250" class="curve-svg">
               <defs>
                 <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="var(--primary-color, #03a9f4)" stop-opacity="0.35"/>
+                  <stop offset="0%" stop-color="var(--primary-color, #03a9f4)" stop-opacity="0.30"/>
                   <stop offset="100%" stop-color="var(--primary-color, #03a9f4)" stop-opacity="0.02"/>
                 </linearGradient>
               </defs>
-              
-              <!-- Axes & Grid -->
-              ${gridLinesSvg}
-              
-              <!-- Shaded curve area -->
-              ${areaD ? `<path d="${areaD}" fill="url(#areaGrad)"/>` : ""}
-              
-              <!-- Curve stroke -->
-              ${pathD ? `<path d="${pathD}" class="curve-line"/>` : ""}
-              
-              <!-- Configured Points -->
-              ${circlesSvg}
-              
-              <!-- Dynamic live position marker -->
-              ${markerSvg}
-              
-              <!-- Axis labels -->
-              ${labelsSvg}
-
-              <!-- Axis title legends -->
-              <text x="${svgWidth - margin.right}" y="${margin.top + plotH - 8}" text-anchor="end" class="axis-legend">X (Entrée)</text>
-              <text x="${margin.left + 8}" y="${margin.top + 14}" text-anchor="start" class="axis-legend">Y (Cible)</text>
+              <g id="svg-grid"></g>
+              <path id="svg-area" fill="url(#areaGrad)"></path>
+              <path id="svg-line" class="curve-line"></path>
+              <g id="svg-points"></g>
+              <g id="svg-current-marker"></g>
+              <g id="svg-labels"></g>
             </svg>
           </div>
 
-          <!-- Points Editor Accordion / Table -->
+          <!-- Points Editor -->
           <div class="editor-section">
             <div class="editor-header">
-              <span class="editor-title">Points de la courbe (${currentPoints.length} points)</span>
-              ${hasUnsavedChanges ? `<span class="unsaved-badge">Modifications non enregistrées</span>` : ""}
+              <span class="editor-title" id="editor-title-text">Points de la courbe</span>
+              <span id="unsaved-badge" class="unsaved-badge" style="display: none;">● Modifications non enregistrées</span>
             </div>
 
             <div class="table-container">
               <table class="points-table">
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>X (Entrée)</th>
-                    <th>Y (Consigne)</th>
-                    <th></th>
+                    <th class="idx-col">#</th>
+                    <th id="th-x-label">X (Entrée)</th>
+                    <th id="th-y-label">Y (Consigne)</th>
+                    <th class="action-col"></th>
                   </tr>
                 </thead>
-                <tbody>
-                  ${tableRows}
-                </tbody>
+                <tbody id="points-table-body"></tbody>
               </table>
             </div>
 
             <div class="editor-actions">
               <button class="btn btn-secondary" id="btn-add-point">+ Ajouter un point</button>
               <div class="right-actions">
-                ${hasUnsavedChanges ? `<button class="btn btn-outline" id="btn-reset">Annuler</button>` : ""}
+                <button class="btn btn-outline" id="btn-reset" style="display: none;">Annuler</button>
                 <button class="btn btn-primary" id="btn-save">💾 Sauvegarder</button>
               </div>
             </div>
@@ -427,27 +287,45 @@ class CurveControllerCard extends HTMLElement {
       ${this._getStyles()}
     `;
 
-    this._attachEventListeners(entryId, activeCurve, currentPoints);
+    this._bindEvents();
   }
 
-  _attachEventListeners(entryId, activeCurve, currentPoints) {
+  _bindEvents() {
     const root = this.shadowRoot;
 
-    // Curve selector change
-    const selectElem = root.getElementById("curve-select");
-    if (selectElem) {
-      selectElem.addEventListener("change", (e) => {
+    // Regulation toggle button
+    const regToggleBtn = root.getElementById("reg-toggle-btn");
+    if (regToggleBtn) {
+      regToggleBtn.addEventListener("click", () => {
+        const entityState = this._getTargetEntity();
+        if (entityState && entityState.attributes) {
+          const entryId = entityState.attributes.entry_id;
+          const isRegOn = entityState.attributes.regulation_enabled !== false;
+          this._toggleRegulation(entryId, isRegOn);
+        }
+      });
+    }
+
+    // Curve select change
+    const curveSelect = root.getElementById("curve-select");
+    if (curveSelect) {
+      curveSelect.addEventListener("change", (e) => {
         this._selectedCurve = e.target.value;
         this._editedPoints = null;
-        this._render();
+        this._renderPointsTable();
+        this._updateSvgGraph();
+        this._updateToolbarState();
       });
     }
 
     // Activate curve button
-    const activateBtn = root.querySelector(".activate-btn");
+    const activateBtn = root.getElementById("btn-activate-curve");
     if (activateBtn) {
       activateBtn.addEventListener("click", () => {
-        this._activateCurve(entryId, this._selectedCurve);
+        const entityState = this._getTargetEntity();
+        if (entityState && entityState.attributes) {
+          this._activateCurve(entityState.attributes.entry_id, this._selectedCurve);
+        }
       });
     }
 
@@ -455,12 +333,14 @@ class CurveControllerCard extends HTMLElement {
     const newCurveBtn = root.getElementById("btn-new-curve");
     if (newCurveBtn) {
       newCurveBtn.addEventListener("click", () => {
-        const name = prompt("Nom de la nouvelle courbe (ex. Nuit, Absent, Confort) :");
+        const entityState = this._getTargetEntity();
+        if (!entityState || !entityState.attributes) return;
+        const name = prompt("Nom du nouveau profil de courbe (ex. Nuit, Absent, Canicule) :");
         if (name && name.trim()) {
           const trimmed = name.trim();
-          // Duplicate current points or default standard curve
-          const initialPts = currentPoints.length ? [...currentPoints] : [[0, 20], [10, 25]];
-          this._saveCurrentCurve(entryId, trimmed, initialPts, false);
+          const currentPts = this._getCurrentPoints();
+          const initialPts = currentPts.length ? currentPts.map(p => [...p]) : [[0, 20], [10, 25]];
+          this._saveCurrentCurve(entityState.attributes.entry_id, trimmed, initialPts, false);
           this._selectedCurve = trimmed;
         }
       });
@@ -470,63 +350,32 @@ class CurveControllerCard extends HTMLElement {
     const delCurveBtn = root.getElementById("btn-del-curve");
     if (delCurveBtn) {
       delCurveBtn.addEventListener("click", () => {
-        this._deleteCurve(entryId, this._selectedCurve);
+        const entityState = this._getTargetEntity();
+        if (entityState && entityState.attributes) {
+          this._deleteCurve(entityState.attributes.entry_id, this._selectedCurve);
+        }
       });
     }
-
-    // Input points change
-    root.querySelectorAll(".pt-input").forEach((inp) => {
-      inp.addEventListener("input", (e) => {
-        const idx = parseInt(e.target.dataset.idx, 10);
-        const field = parseInt(e.target.dataset.field, 10);
-        const val = parseFloat(e.target.value);
-        if (!isNaN(val)) {
-          if (!this._editedPoints) {
-            this._editedPoints = currentPoints.map(p => [...p]);
-          }
-          this._editedPoints[idx][field] = val;
-          // Soft update without re-rendering input elements on every keypress
-          this._updateSvgOnly();
-        }
-      });
-      inp.addEventListener("change", () => {
-        this._render();
-      });
-    });
-
-    // Delete point button
-    root.querySelectorAll(".delete-btn").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        const idx = parseInt(e.target.dataset.idx, 10);
-        if (currentPoints.length <= 2) {
-          alert("Une courbe doit contenir au minimum 2 points.");
-          return;
-        }
-        if (!this._editedPoints) {
-          this._editedPoints = currentPoints.map(p => [...p]);
-        }
-        this._editedPoints.splice(idx, 1);
-        this._render();
-      });
-    });
 
     // Add point button
     const addPtBtn = root.getElementById("btn-add-point");
     if (addPtBtn) {
       addPtBtn.addEventListener("click", () => {
+        const currentPts = this._getCurrentPoints();
         if (!this._editedPoints) {
-          this._editedPoints = currentPoints.map(p => [...p]);
+          this._editedPoints = currentPts.map(p => [...p]);
         }
-        // Suggest point halfway between last two points or last + 5
         let newX = 20;
         let newY = 20;
         if (this._editedPoints.length > 0) {
           const last = this._editedPoints[this._editedPoints.length - 1];
-          newX = last[0] + 5;
-          newY = last[1];
+          newX = (parseFloat(last[0]) || 0) + 5;
+          newY = parseFloat(last[1]) || 0;
         }
         this._editedPoints.push([newX, newY]);
-        this._render();
+        this._renderPointsTable();
+        this._updateSvgGraph();
+        this._updateToolbarState();
       });
     }
 
@@ -535,7 +384,9 @@ class CurveControllerCard extends HTMLElement {
     if (resetBtn) {
       resetBtn.addEventListener("click", () => {
         this._editedPoints = null;
-        this._render();
+        this._renderPointsTable();
+        this._updateSvgGraph();
+        this._updateToolbarState();
       });
     }
 
@@ -543,17 +394,359 @@ class CurveControllerCard extends HTMLElement {
     const saveBtn = root.getElementById("btn-save");
     if (saveBtn) {
       saveBtn.addEventListener("click", () => {
-        const pts = this._editedPoints || currentPoints;
-        this._saveCurrentCurve(entryId, this._selectedCurve, pts, this._selectedCurve === activeCurve);
+        const entityState = this._getTargetEntity();
+        if (entityState && entityState.attributes) {
+          const entryId = entityState.attributes.entry_id;
+          const activeCurve = entityState.attributes.active_curve || "";
+          const pts = this._getCurrentPoints();
+          this._saveCurrentCurve(entryId, this._selectedCurve, pts, this._selectedCurve === activeCurve);
+        }
       });
     }
   }
 
-  _updateSvgOnly() {
-    // Quick re-render to update the chart in real time while typing
-    const root = this.shadowRoot;
-    const saveBtn = root.getElementById("btn-save");
-    if (saveBtn) saveBtn.classList.add("pulse");
+  _getCurrentPoints() {
+    if (this._editedPoints !== null) {
+      return this._editedPoints;
+    }
+    const entityState = this._getTargetEntity();
+    if (!entityState || !entityState.attributes || !entityState.attributes.curves) {
+      return [];
+    }
+    const curves = entityState.attributes.curves;
+    if (this._selectedCurve && curves[this._selectedCurve]) {
+      return curves[this._selectedCurve].map(p => [p[0], p[1]]);
+    }
+    return [];
+  }
+
+  _updateState() {
+    const entityState = this._getTargetEntity();
+    if (!entityState || !entityState.attributes) return;
+
+    const attrs = entityState.attributes;
+    const curves = attrs.curves || {};
+    const activeCurve = attrs.active_curve || "";
+    const curveNames = Object.keys(curves);
+
+    // Initial curve selection
+    if (!this._selectedCurve || !curves[this._selectedCurve]) {
+      this._selectedCurve = activeCurve && curves[activeCurve] ? activeCurve : (curveNames[0] || "");
+    }
+
+    // Update Regulation Switch in UI
+    const isRegOn = attrs.regulation_enabled !== false;
+    const regToggleBtn = this.shadowRoot.getElementById("reg-toggle-btn");
+    const regStatusLabel = this.shadowRoot.getElementById("reg-status-label");
+    const regPausedBanner = this.shadowRoot.getElementById("regulation-paused-banner");
+
+    if (regToggleBtn) {
+      if (isRegOn) {
+        regToggleBtn.classList.add("active");
+        regStatusLabel.innerHTML = `Régulation : <strong class="text-success">ACTIVE</strong>`;
+        if (regPausedBanner) regPausedBanner.style.display = "none";
+      } else {
+        regToggleBtn.classList.remove("active");
+        regStatusLabel.innerHTML = `Régulation : <strong class="text-warning">EN PAUSE</strong>`;
+        if (regPausedBanner) regPausedBanner.style.display = "flex";
+      }
+    }
+
+    // Update Curve dropdown options if list changed
+    const curveSelect = this.shadowRoot.getElementById("curve-select");
+    if (curveSelect) {
+      const currentOpts = Array.from(curveSelect.options).map(o => o.value);
+      const isDifferent = currentOpts.length !== curveNames.length ||
+        !curveNames.every((c, i) => c === currentOpts[i]);
+
+      if (isDifferent || this._lastActiveCurve !== activeCurve) {
+        this._lastActiveCurve = activeCurve;
+        curveSelect.innerHTML = curveNames.map(c => `
+          <option value="${c}" ${c === this._selectedCurve ? "selected" : ""}>
+            ${c} ${c === activeCurve ? "★" : ""}
+          </option>
+        `).join("");
+      } else {
+        curveSelect.value = this._selectedCurve;
+      }
+    }
+
+    // Update table headers with entities units
+    const { sourceUnit, targetUnit } = this._getUnits(attrs);
+    const thX = this.shadowRoot.getElementById("th-x-label");
+    const thY = this.shadowRoot.getElementById("th-y-label");
+    if (thX) thX.textContent = `X (Entrée ${sourceUnit ? `[${sourceUnit}]` : ""})`;
+    if (thY) thY.textContent = `Y (Consigne ${targetUnit ? `[${targetUnit}]` : ""})`;
+
+    // Check if table needs rendering (avoid wiping table while user has focus!)
+    const isInputFocused = !!this.shadowRoot.querySelector("input:focus");
+    if (!isInputFocused) {
+      this._renderPointsTable();
+    }
+
+    this._updateToolbarState();
+    this._updateSvgGraph();
+  }
+
+  _updateToolbarState() {
+    const entityState = this._getTargetEntity();
+    if (!entityState || !entityState.attributes) return;
+
+    const attrs = entityState.attributes;
+    const activeCurve = attrs.active_curve || "";
+    const isCurrentActive = (this._selectedCurve === activeCurve);
+    const hasUnsaved = this._editedPoints !== null;
+
+    const badgeContainer = this.shadowRoot.getElementById("active-badge-container");
+    const activateBtn = this.shadowRoot.getElementById("btn-activate-curve");
+    const unsavedBadge = this.shadowRoot.getElementById("unsaved-badge");
+    const resetBtn = this.shadowRoot.getElementById("btn-reset");
+
+    if (badgeContainer) {
+      badgeContainer.innerHTML = isCurrentActive
+        ? `<span class="badge active-badge"><ha-icon icon="mdi:check-circle"></ha-icon> ACTIVE</span>`
+        : "";
+    }
+
+    if (activateBtn) {
+      activateBtn.style.display = isCurrentActive ? "none" : "inline-block";
+    }
+
+    if (unsavedBadge) {
+      unsavedBadge.style.display = hasUnsaved ? "inline" : "none";
+    }
+
+    if (resetBtn) {
+      resetBtn.style.display = hasUnsaved ? "inline-block" : "none";
+    }
+
+    const editorTitle = this.shadowRoot.getElementById("editor-title-text");
+    const pts = this._getCurrentPoints();
+    if (editorTitle) {
+      editorTitle.textContent = `Points du profil "${this._selectedCurve}" (${pts.length} points)`;
+    }
+  }
+
+  _renderPointsTable() {
+    const tbody = this.shadowRoot.getElementById("points-table-body");
+    if (!tbody) return;
+
+    // Do not disrupt active input
+    if (this.shadowRoot.querySelector("input:focus")) return;
+
+    const pts = this._getCurrentPoints();
+    tbody.innerHTML = pts.map((pt, idx) => `
+      <tr>
+        <td class="idx-col">#${idx + 1}</td>
+        <td>
+          <input type="text" inputmode="decimal" class="pt-input" data-idx="${idx}" data-field="0" value="${pt[0]}" />
+        </td>
+        <td>
+          <input type="text" inputmode="decimal" class="pt-input" data-idx="${idx}" data-field="1" value="${pt[1]}" />
+        </td>
+        <td class="action-col">
+          <button class="btn-icon delete-btn" data-idx="${idx}" title="Supprimer ce point">✕</button>
+        </td>
+      </tr>
+    `).join("");
+
+    // Attach listeners on inputs
+    tbody.querySelectorAll(".pt-input").forEach(input => {
+      input.addEventListener("input", (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        const field = parseInt(e.target.dataset.field, 10);
+        const rawVal = e.target.value.trim();
+
+        if (!this._editedPoints) {
+          this._editedPoints = pts.map(p => [...p]);
+        }
+
+        // Allow direct typing, convert to number or preserve intermediate string
+        this._editedPoints[idx][field] = rawVal;
+        this._updateToolbarState();
+        this._updateSvgGraph();
+      });
+
+      input.addEventListener("blur", (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        const field = parseInt(e.target.dataset.field, 10);
+        const parsed = parseFloat(e.target.value);
+        if (!isNaN(parsed)) {
+          if (!this._editedPoints) this._editedPoints = pts.map(p => [...p]);
+          this._editedPoints[idx][field] = parsed;
+          e.target.value = parsed;
+        }
+        this._updateSvgGraph();
+      });
+    });
+
+    // Delete point button listener
+    tbody.querySelectorAll(".delete-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const idx = parseInt(e.target.dataset.idx, 10);
+        if (pts.length <= 2) {
+          alert("Une courbe doit contenir au minimum 2 points.");
+          return;
+        }
+        if (!this._editedPoints) {
+          this._editedPoints = pts.map(p => [...p]);
+        }
+        this._editedPoints.splice(idx, 1);
+        this._renderPointsTable();
+        this._updateSvgGraph();
+        this._updateToolbarState();
+      });
+    });
+  }
+
+  _updateSvgGraph() {
+    const entityState = this._getTargetEntity();
+    if (!entityState || !entityState.attributes) return;
+
+    const attrs = entityState.attributes;
+    const { sourceUnit, targetUnit } = this._getUnits(attrs);
+    const isRegOn = attrs.regulation_enabled !== false;
+
+    const sourceValue = typeof attrs.source_value === "number" ? attrs.source_value : null;
+    const rawPoints = this._getCurrentPoints();
+
+    // Numeric points sorted by X
+    const numericPoints = rawPoints
+      .map(p => [parseFloat(p[0]), parseFloat(p[1])])
+      .filter(p => !isNaN(p[0]) && !isNaN(p[1]))
+      .sort((a, b) => a[0] - b[0]);
+
+    if (numericPoints.length === 0) return;
+
+    // Viewport dimensions
+    const svgWidth = 520;
+    const svgHeight = 250;
+    const margin = { top: 25, right: 35, bottom: 45, left: 60 };
+    const plotW = svgWidth - margin.left - margin.right;
+    const plotH = svgHeight - margin.top - margin.bottom;
+
+    // Bounds
+    const allX = numericPoints.map(p => p[0]);
+    const allY = numericPoints.map(p => p[1]);
+    if (sourceValue !== null) allX.push(sourceValue);
+
+    let minX = Math.min(...allX);
+    let maxX = Math.max(...allX);
+    let minY = Math.min(...allY);
+    let maxY = Math.max(...allY);
+
+    if (minX === maxX) { minX -= 5; maxX += 5; }
+    if (minY === maxY) { minY -= 5; maxY += 5; }
+
+    const padX = (maxX - minX) * 0.1 || 2;
+    const padY = (maxY - minY) * 0.1 || 2;
+    minX -= padX;
+    maxX += padX;
+    minY -= padY;
+    maxY += padY;
+
+    const toSvgX = (x) => margin.left + ((x - minX) / (maxX - minX)) * plotW;
+    const toSvgY = (y) => margin.top + plotH - ((y - minY) / (maxY - minY)) * plotH;
+
+    // 1. Grid ticks
+    const numTicks = 5;
+    let gridSvg = "";
+    let labelsSvg = "";
+
+    for (let i = 0; i <= numTicks; i++) {
+      // Y ticks
+      const valY = minY + (i / numTicks) * (maxY - minY);
+      const sy = toSvgY(valY);
+      gridSvg += `<line x1="${margin.left}" y1="${sy}" x2="${svgWidth - margin.right}" y2="${sy}" stroke="var(--divider-color, rgba(125,125,125,0.2))" stroke-width="1" />`;
+      labelsSvg += `<text x="${margin.left - 8}" y="${sy + 4}" text-anchor="end" class="axis-tick-text">${valY.toFixed(1)}</text>`;
+
+      // X ticks
+      const valX = minX + (i / numTicks) * (maxX - minX);
+      const sx = toSvgX(valX);
+      gridSvg += `<line x1="${sx}" y1="${margin.top}" x2="${sx}" y2="${margin.top + plotH}" stroke="var(--divider-color, rgba(125,125,125,0.2))" stroke-width="1" />`;
+      labelsSvg += `<text x="${sx}" y="${margin.top + plotH + 18}" text-anchor="middle" class="axis-tick-text">${valX.toFixed(1)}</text>`;
+    }
+
+    // Axis legend labels with units
+    labelsSvg += `<text x="${svgWidth - margin.right}" y="${margin.top + plotH - 8}" text-anchor="end" class="axis-title-text">X Entrée ${sourceUnit ? `(${sourceUnit})` : ""}</text>`;
+    labelsSvg += `<text x="${margin.left + 8}" y="${margin.top + 12}" text-anchor="start" class="axis-title-text">Y Consigne ${targetUnit ? `(${targetUnit})` : ""}</text>`;
+
+    // 2. Build curve path
+    const firstPt = numericPoints[0];
+    const lastPt = numericPoints[numericPoints.length - 1];
+
+    let pathD = `M ${toSvgX(minX)} ${toSvgY(firstPt[1])} L ${toSvgX(firstPt[0])} ${toSvgY(firstPt[1])}`;
+    numericPoints.forEach(pt => {
+      pathD += ` L ${toSvgX(pt[0])} ${toSvgY(pt[1])}`;
+    });
+    pathD += ` L ${toSvgX(maxX)} ${toSvgY(lastPt[1])}`;
+
+    const bottomY = toSvgY(minY);
+    const areaD = `${pathD} L ${toSvgX(maxX)} ${bottomY} L ${toSvgX(minX)} ${bottomY} Z`;
+
+    // 3. Circles for points
+    const circlesSvg = numericPoints.map((pt, idx) => `
+      <circle cx="${toSvgX(pt[0])}" cy="${toSvgY(pt[1])}" r="5" class="point-circle">
+        <title>Point ${idx + 1} : X=${pt[0]}${sourceUnit}, Y=${pt[1]}${targetUnit}</title>
+      </circle>
+    `).join("");
+
+    // 4. Dynamic marker & Real-time Live Axis Value Badges!
+    let markerSvg = "";
+    if (sourceValue !== null && numericPoints.length > 0) {
+      const curY = this._interpolate(numericPoints, sourceValue);
+      const mx = toSvgX(sourceValue);
+      const my = toSvgY(curY);
+      const markerColor = isRegOn ? "var(--accent-color, #ff9800)" : "#9e9e9e";
+
+      const xText = `${sourceValue.toFixed(1)} ${sourceUnit}`;
+      const yText = `${curY.toFixed(1)} ${targetUnit}`;
+
+      // Width calculation approximation for badges
+      const xBadgeW = Math.max(50, xText.length * 7.5 + 14);
+      const yBadgeW = Math.max(50, yText.length * 7.5 + 14);
+
+      markerSvg = `
+        <g class="live-marker-group">
+          <!-- Crosshair guides to axes -->
+          <line x1="${mx}" y1="${toSvgY(minY)}" x2="${mx}" y2="${my}" stroke="${markerColor}" stroke-dasharray="3,3" stroke-width="1.5" />
+          <line x1="${margin.left}" y1="${my}" x2="${mx}" y2="${my}" stroke="${markerColor}" stroke-dasharray="3,3" stroke-width="1.5" />
+
+          <!-- X-Axis dynamic badge at source position -->
+          <g transform="translate(${Math.max(margin.left, Math.min(svgWidth - margin.right - xBadgeW, mx - xBadgeW / 2))}, ${margin.top + plotH + 4})">
+            <rect x="0" y="0" width="${xBadgeW}" height="20" rx="4" fill="${markerColor}" class="axis-badge-bg" />
+            <text x="${xBadgeW / 2}" y="14" text-anchor="middle" class="axis-badge-text">${xText}</text>
+          </g>
+
+          <!-- Y-Axis dynamic badge at target setpoint position -->
+          <g transform="translate(${margin.left - yBadgeW - 4}, ${Math.max(margin.top, Math.min(margin.top + plotH - 20, my - 10))})">
+            <rect x="0" y="0" width="${yBadgeW}" height="20" rx="4" fill="${markerColor}" class="axis-badge-bg" />
+            <text x="${yBadgeW / 2}" y="14" text-anchor="middle" class="axis-badge-text">${yText}</text>
+          </g>
+
+          <!-- Pulsing dot on curve -->
+          ${isRegOn ? `
+            <circle cx="${mx}" cy="${my}" r="9" fill="${markerColor}" opacity="0.3">
+              <animate attributeName="r" values="6;13;6" dur="2s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.4;0.05;0.4" dur="2s" repeatCount="indefinite" />
+            </circle>
+          ` : `
+            <circle cx="${mx}" cy="${my}" r="8" fill="none" stroke="${markerColor}" stroke-dasharray="2,2" stroke-width="2" />
+          `}
+          <circle cx="${mx}" cy="${my}" r="5" fill="${markerColor}" stroke="#ffffff" stroke-width="2">
+            <title>Position actuelle : ${xText} ➔ ${yText} ${isRegOn ? "" : "(Régulation en pause)"}</title>
+          </circle>
+        </g>
+      `;
+    }
+
+    // Apply to SVG DOM elements
+    this.shadowRoot.getElementById("svg-grid").innerHTML = gridSvg;
+    this.shadowRoot.getElementById("svg-labels").innerHTML = labelsSvg;
+    this.shadowRoot.getElementById("svg-line").setAttribute("d", pathD);
+    this.shadowRoot.getElementById("svg-area").setAttribute("d", areaD);
+    this.shadowRoot.getElementById("svg-points").innerHTML = circlesSvg;
+    this.shadowRoot.getElementById("svg-current-marker").innerHTML = markerSvg;
   }
 
   _getStyles() {
@@ -574,7 +767,7 @@ class CurveControllerCard extends HTMLElement {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 16px 20px 12px;
+          padding: 14px 18px 12px;
           border-bottom: 1px solid var(--divider-color, rgba(0,0,0,0.08));
         }
         .header-title {
@@ -587,14 +780,74 @@ class CurveControllerCard extends HTMLElement {
         .header-icon {
           color: var(--primary-color, #03a9f4);
         }
+        .header-controls {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .regulation-toggle-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .reg-label {
+          font-size: 0.85rem;
+          color: var(--secondary-text-color, #757575);
+        }
+        .text-success {
+          color: var(--success-color, #4caf50);
+        }
+        .text-warning {
+          color: var(--accent-color, #ff9800);
+        }
+        .toggle-switch-btn {
+          position: relative;
+          width: 44px;
+          height: 24px;
+          border-radius: 12px;
+          border: none;
+          background: var(--disabled-text-color, #bbb);
+          cursor: pointer;
+          transition: background 0.3s ease;
+          padding: 2px;
+        }
+        .toggle-switch-btn.active {
+          background: var(--success-color, #4caf50);
+        }
+        .toggle-thumb {
+          display: block;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #fff;
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .toggle-switch-btn.active .toggle-thumb {
+          transform: translateX(20px);
+        }
         .card-content {
-          padding: 16px 20px;
+          padding: 14px 18px;
+        }
+        .paused-banner {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(255, 152, 0, 0.15);
+          color: #e65100;
+          border: 1px solid rgba(255, 152, 0, 0.35);
+          padding: 8px 12px;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          font-weight: 500;
+          margin-bottom: 12px;
+          animation: fadeIn 0.3s ease;
         }
         .status-msg {
           padding: 8px 12px;
           margin-bottom: 12px;
           border-radius: 6px;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           animation: fadeIn 0.3s ease;
         }
         .status-msg.success {
@@ -607,46 +860,13 @@ class CurveControllerCard extends HTMLElement {
           color: #c62828;
           border: 1px solid rgba(244, 67, 54, 0.3);
         }
-        .stats-bar {
-          display: flex;
-          align-items: center;
-          justify-content: space-around;
-          background: var(--secondary-background-color, rgba(0,0,0,0.03));
-          padding: 12px;
-          border-radius: 8px;
-          margin-bottom: 14px;
-        }
-        .stat-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        .stat-label {
-          font-size: 0.75rem;
-          color: var(--secondary-text-color, #757575);
-          margin-bottom: 2px;
-        }
-        .stat-val {
-          font-size: 1.25rem;
-          font-weight: 700;
-        }
-        .stat-val.primary {
-          color: var(--primary-color, #03a9f4);
-        }
-        .stat-val.highlight {
-          color: var(--accent-color, #ff9800);
-        }
-        .stat-arrow {
-          font-size: 1.2rem;
-          color: var(--secondary-text-color, #9e9e9e);
-        }
         .toolbar {
           display: flex;
           align-items: center;
           justify-content: space-between;
           flex-wrap: wrap;
           gap: 10px;
-          margin-bottom: 14px;
+          margin-bottom: 12px;
         }
         .curve-select-wrapper {
           display: flex;
@@ -681,7 +901,7 @@ class CurveControllerCard extends HTMLElement {
           transition: all 0.2s ease;
         }
         .btn-sm {
-          padding: 4px 8px;
+          padding: 5px 9px;
           font-size: 0.8rem;
           background: var(--secondary-background-color, rgba(0,0,0,0.05));
           color: var(--primary-text-color);
@@ -724,9 +944,9 @@ class CurveControllerCard extends HTMLElement {
           display: inline-flex;
           align-items: center;
           gap: 4px;
-          padding: 4px 8px;
+          padding: 3px 8px;
           border-radius: 12px;
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           font-weight: 700;
           letter-spacing: 0.5px;
         }
@@ -736,15 +956,16 @@ class CurveControllerCard extends HTMLElement {
         }
         .unsaved-badge {
           font-size: 0.75rem;
-          color: #ff9800;
+          color: var(--accent-color, #ff9800);
           font-weight: 600;
         }
         .chart-container {
           width: 100%;
           background: var(--secondary-background-color, rgba(0,0,0,0.02));
           border-radius: 8px;
-          padding: 8px;
-          margin-bottom: 16px;
+          padding: 6px;
+          margin-bottom: 14px;
+          border: 1px solid var(--divider-color, rgba(0,0,0,0.06));
         }
         .curve-svg {
           width: 100%;
@@ -754,7 +975,7 @@ class CurveControllerCard extends HTMLElement {
         .curve-line {
           fill: none;
           stroke: var(--primary-color, #03a9f4);
-          stroke-width: 3;
+          stroke-width: 2.8;
           stroke-linecap: round;
           stroke-linejoin: round;
         }
@@ -763,20 +984,27 @@ class CurveControllerCard extends HTMLElement {
           stroke: var(--primary-color, #03a9f4);
           stroke-width: 2.5;
           cursor: pointer;
-          transition: r 0.2s;
         }
         .point-circle:hover {
           r: 7;
           fill: var(--primary-color, #03a9f4);
         }
-        .axis-label {
+        .axis-tick-text {
           font-size: 10px;
           fill: var(--secondary-text-color, #757575);
         }
-        .axis-legend {
+        .axis-title-text {
           font-size: 10px;
           fill: var(--secondary-text-color, #757575);
           font-weight: 600;
+        }
+        .axis-badge-bg {
+          filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+        }
+        .axis-badge-text {
+          font-size: 10.5px;
+          font-weight: 700;
+          fill: #ffffff;
         }
         .editor-section {
           border-top: 1px solid var(--divider-color, rgba(0,0,0,0.08));
@@ -816,21 +1044,27 @@ class CurveControllerCard extends HTMLElement {
           border-top: 1px solid var(--divider-color, rgba(0,0,0,0.05));
         }
         .idx-col {
-          width: 40px;
+          width: 36px;
           color: var(--secondary-text-color);
         }
         .action-col {
-          width: 40px;
+          width: 36px;
           text-align: center;
         }
         .pt-input {
           width: 90%;
-          padding: 4px 6px;
+          padding: 5px 8px;
           border: 1px solid var(--divider-color, #ccc);
           border-radius: 4px;
           background: var(--input-fill-color, var(--card-background-color, #fff));
           color: var(--primary-text-color);
           font-size: 0.85rem;
+          font-weight: 500;
+        }
+        .pt-input:focus {
+          outline: none;
+          border-color: var(--primary-color, #03a9f4);
+          box-shadow: 0 0 0 2px rgba(3, 169, 244, 0.2);
         }
         .editor-actions {
           display: flex;
@@ -842,7 +1076,7 @@ class CurveControllerCard extends HTMLElement {
           gap: 8px;
         }
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-4px); }
+          from { opacity: 0; transform: translateY(-3px); }
           to { opacity: 1; transform: translateY(0); }
         }
       </style>
@@ -863,9 +1097,8 @@ if (!customElements.get("curve-controller-card")) {
   });
 
   console.info(
-    `%c CURVE-CONTROLLER-CARD %c Version 1.0.1 `,
+    `%c CURVE-CONTROLLER-CARD %c Version 1.1.0 `,
     "color: white; background: #03a9f4; font-weight: 700; border-radius: 3px 0 0 3px;",
     "color: #03a9f4; background: #e1f5fe; font-weight: 700; border-radius: 0 3px 3px 0;"
   );
 }
-

@@ -17,9 +17,11 @@
 - **Clamping Automatique :** Si l'entrée $X$ est inférieure au premier point ou supérieure au dernier, la consigne $Y$ reste bridée respectivement à la valeur du premier ou du dernier point.
 - **Carte Lovelace interactive (`curve-controller-card`) :**
   - Tracé vectoriel SVG haute résolution avec axes et repères.
-  - **Marqueur dynamique temps réel :** visualisez instantanément le point de fonctionnement actuel sur la courbe avec effet de pulsation.
-  - Éditeur de coordonnées : ajout, modification numérique directe et suppression de points.
+  - **Marqueur dynamique temps réel & Badges sur les axes :** visualisez instantanément le point de fonctionnement actuel avec ses unités directement projetées sur les axes X et Y.
+  - **Bouton d'interruption/reprise de la régulation :** suspendez la régulation directement depuis l'en-tête de la carte ou via l'entité switch dédiée.
+  - Éditeur de coordonnées stable : saisie numérique libre des points (y compris négatifs et décimaux) sans perte de focus.
   - Bascule en un clic de la courbe active en production.
+- **Entité Switch dédiée :** Une entité `switch.curve_controller_<instance>_regulation` pour suspendre/reprendre l'asservissement depuis n'importe quel tableau de bord ou automatisation.
 - **Support large d'entités cibles :**
   - `input_number.*` / `number.*` (`set_value`)
   - `climate.*` (`set_temperature`)
@@ -162,6 +164,16 @@ Force l'évaluation et l'application immédiate de la consigne cible.
 service: curve_controller.evaluate
 data:
   entity_id: sensor.curve_controller_calculated_output
+```
+
+### 5. `curve_controller.set_regulation`
+Active ou suspend l'injection de la consigne vers la cible (laisse la sortie à sa valeur actuelle).
+
+```yaml
+service: curve_controller.set_regulation
+data:
+  entity_id: sensor.curve_controller_calculated_output
+  enabled: false
 ```
 
 ---

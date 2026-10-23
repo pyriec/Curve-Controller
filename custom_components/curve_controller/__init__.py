@@ -22,10 +22,12 @@ from .const import (
     SERVICE_SAVE_CURVE,
     SERVICE_DELETE_CURVE,
     SERVICE_EVALUATE,
+    SERVICE_SET_REGULATION,
     ATTR_CURVE_NAME,
     ATTR_POINTS,
     ATTR_SET_ACTIVE,
     ATTR_ENTRY_ID,
+    ATTR_ENABLED,
 )
 from .coordinator import CurveControllerCoordinator
 
@@ -61,6 +63,14 @@ EVALUATE_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_ENTRY_ID): cv.string,
         vol.Optional("entity_id"): cv.entity_id,
+    }
+)
+
+SET_REGULATION_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTRY_ID): cv.string,
+        vol.Optional("entity_id"): cv.entity_id,
+        vol.Required(ATTR_ENABLED): cv.boolean,
     }
 )
 
@@ -138,6 +148,11 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         coordinator = _get_coordinator(call)
         await coordinator.async_evaluate()
 
+    async def async_handle_set_regulation(call: ServiceCall) -> None:
+        coordinator = _get_coordinator(call)
+        enabled = call.data[ATTR_ENABLED]
+        await coordinator.async_set_enabled(enabled)
+
     # Register services under domain
     hass.services.async_register(
         DOMAIN,
@@ -162,6 +177,12 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         SERVICE_EVALUATE,
         async_handle_evaluate,
         schema=EVALUATE_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_REGULATION,
+        async_handle_set_regulation,
+        schema=SET_REGULATION_SCHEMA,
     )
 
     return True

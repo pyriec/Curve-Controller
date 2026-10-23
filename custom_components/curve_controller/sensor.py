@@ -22,6 +22,9 @@ from .const import (
     ATTR_TARGET_ENTITY,
     ATTR_CALCULATED_VALUE,
     ATTR_POINTS_LIST,
+    ATTR_REGULATION_ENABLED,
+    ATTR_SOURCE_UNIT,
+    ATTR_TARGET_UNIT,
 )
 from .coordinator import CurveControllerCoordinator
 
@@ -68,6 +71,11 @@ class CurveControllerOutputSensor(SensorEntity):
         return self.coordinator.calculated_value
 
     @property
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the unit of measurement."""
+        return self.coordinator.target_unit or None
+
+    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes for Lovelace card and automations."""
         active_points = self.coordinator.curves.get(self.coordinator.active_curve, [])
@@ -76,10 +84,13 @@ class CurveControllerOutputSensor(SensorEntity):
             ATTR_ACTIVE_CURVE: self.coordinator.active_curve,
             ATTR_SOURCE_ENTITY: self.coordinator.source_entity,
             ATTR_SOURCE_VALUE: self.coordinator.source_value,
+            ATTR_SOURCE_UNIT: self.coordinator.source_unit,
             ATTR_TARGET_ENTITY: self.coordinator.target_entity,
+            ATTR_TARGET_UNIT: self.coordinator.target_unit,
             ATTR_CALCULATED_VALUE: self.coordinator.calculated_value,
             ATTR_POINTS_LIST: active_points,
             ATTR_CURVES: self.coordinator.curves,
+            ATTR_REGULATION_ENABLED: self.coordinator.enabled,
         }
 
     async def async_added_to_hass(self) -> None:

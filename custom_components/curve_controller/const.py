@@ -4,7 +4,7 @@ from homeassistant.const import Platform
 DOMAIN = "curve_controller"
 
 # Platforms
-PLATFORMS = [Platform.SENSOR, Platform.SELECT]
+PLATFORMS = [Platform.SENSOR, Platform.SELECT, Platform.SWITCH]
 
 # Configuration keys
 CONF_SOURCE_ENTITY = "source_entity"
@@ -60,12 +60,14 @@ SERVICE_SELECT_CURVE = "select_curve"
 SERVICE_SAVE_CURVE = "save_curve"
 SERVICE_DELETE_CURVE = "delete_curve"
 SERVICE_EVALUATE = "evaluate"
+SERVICE_SET_REGULATION = "set_regulation"
 
 # Service / Event fields
 ATTR_CURVE_NAME = "curve_name"
 ATTR_POINTS = "points"
 ATTR_SET_ACTIVE = "set_active"
 ATTR_ENTRY_ID = "entry_id"
+ATTR_ENABLED = "enabled"
 
 # Entity Attributes
 ATTR_ACTIVE_CURVE = "active_curve"
@@ -75,6 +77,9 @@ ATTR_SOURCE_VALUE = "source_value"
 ATTR_TARGET_ENTITY = "target_entity"
 ATTR_CALCULATED_VALUE = "calculated_value"
 ATTR_POINTS_LIST = "points"
+ATTR_REGULATION_ENABLED = "regulation_enabled"
+ATTR_SOURCE_UNIT = "source_unit"
+ATTR_TARGET_UNIT = "target_unit"
 
 # Frontend card registration
 URL_BASE = "/curve_controller_frontend"

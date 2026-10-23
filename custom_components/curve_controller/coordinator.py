@@ -97,6 +97,7 @@ class CurveControllerCoordinator:
         self.active_curve: str = ""
         self.source_value: float | None = None
         self.calculated_value: float | None = None
+        self.enabled: bool = True
 
         self._listeners: list[Callable[[], None]] = []
         self._unsub_tracker: Callable[[], None] | None = None
@@ -145,6 +146,31 @@ class CurveControllerCoordinator:
         except (ValueError, TypeError):
             return DEFAULT_ROUND_DECIMALS
 
+    @property
+    def source_unit(self) -> str:
+        """Get unit of measurement of source entity."""
+        if not self.source_entity:
+            return ""
+        state = self.hass.states.get(self.source_entity)
+        return state.attributes.get("unit_of_measurement", "") if state else ""
+
+    @property
+    def target_unit(self) -> str:
+        """Get unit of measurement of target entity."""
+        if not self.target_entity:
+            return ""
+        state = self.hass.states.get(self.target_entity)
+        if state:
+            unit = state.attributes.get("unit_of_measurement")
+            if unit:
+                return unit
+            domain = self.target_entity.split(".")[0]
+            if domain == "climate":
+                return state.attributes.get("temperature_unit") or self.hass.config.units.temperature_unit
+            if domain == "fan" or domain == "cover":
+                return "%"
+        return ""
+
     async def async_setup(self) -> None:
         """Load stored curves and setup listeners."""
         # Load from storage
@@ -152,9 +178,11 @@ class CurveControllerCoordinator:
         if stored_data and isinstance(stored_data, dict):
             self.curves = stored_data.get("curves", DEFAULT_CURVES.copy())
             self.active_curve = stored_data.get("active_curve", "")
+            self.enabled = stored_data.get("enabled", True)
         else:
             self.curves = {k: [list(pt) for pt in v] for k, v in DEFAULT_CURVES.items()}
             self.active_curve = next(iter(self.curves.keys()), "Hiver")
+            self.enabled = True
             await self._async_save_to_storage()
 
         if self.active_curve not in self.curves and self.curves:
@@ -233,8 +261,23 @@ class CurveControllerCoordinator:
         data = {
             "active_curve": self.active_curve,
             "curves": self.curves,
+            "enabled": self.enabled,
         }
         await self._store.async_save(data)
+
+    async def async_set_enabled(self, enabled: bool) -> None:
+        """Enable or disable regulation output injection."""
+        self.enabled = bool(enabled)
+        await self._async_save_to_storage()
+        if self.enabled:
+            await self.async_evaluate()
+        else:
+            self.notify_listeners()
+        _LOGGER.info(
+            "Regulation %s for %s",
+            "enabled" if self.enabled else "disabled",
+            self.entry.title,
+        )
 
     async def async_select_curve(self, curve_name: str) -> None:
         """Switch the active curve and recalculate."""
@@ -338,9 +381,16 @@ class CurveControllerCoordinator:
         result = interpolate_curve(points, self.source_value, self.round_decimals)
         self.calculated_value = result
 
-        # Dispatch output to target entity if configured
-        if self.calculated_value is not None and self.target_entity:
+        # Dispatch output to target entity if configured and regulation is enabled
+        if self.enabled and self.calculated_value is not None and self.target_entity:
             await self._async_update_target_entity(self.calculated_value)
+        elif not self.enabled:
+            _LOGGER.debug(
+                "Regulation paused for %s; not writing to target entity %s (calculated: %s)",
+                self.entry.title,
+                self.target_entity,
+                self.calculated_value,
+            )
 
         self.notify_listeners()
 

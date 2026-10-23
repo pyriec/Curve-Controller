@@ -115,3 +115,30 @@ evaluate:
             - sensor
             - select
 
+set_regulation:
+  name: Activer ou suspendre la régulation
+  description: Active ou met en pause l'injection des valeurs calculées vers l'entité cible.
+  fields:
+    enabled:
+      name: Actif
+      description: Activer (vrai) ou suspendre (faux) la transmission vers la sortie cible.
+      required: true
+      selector:
+        boolean:
+    entry_id:
+      name: Identifiant de configuration (Entry ID)
+      description: Identifiant unique de l'instance Curve Controller.
+      required: false
+      selector:
+        text:
+    entity_id:
+      name: Entité associée
+      description: Entité sensor, select ou switch de l'instance Curve Controller.
+      required: false
+      selector:
+        entity:
+          domain:
+            - sensor
+            - select
+            - switch
+
