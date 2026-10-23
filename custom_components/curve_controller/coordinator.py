@@ -42,21 +42,26 @@ def interpolate_curve(
     if not points:
         return None
 
+    try:
+        decimals = int(round_decimals)
+    except (ValueError, TypeError):
+        decimals = 1
+
     # Ensure points are sorted by X ascending
     sorted_points = sorted([[float(p[0]), float(p[1])] for p in points], key=lambda p: p[0])
 
     if len(sorted_points) == 1:
-        return round(sorted_points[0][1], round_decimals)
+        return round(sorted_points[0][1], decimals)
 
     # Clamping left
     first_x, first_y = sorted_points[0]
     if x_value <= first_x:
-        return round(first_y, round_decimals)
+        return round(first_y, decimals)
 
     # Clamping right
     last_x, last_y = sorted_points[-1]
     if x_value >= last_x:
-        return round(last_y, round_decimals)
+        return round(last_y, decimals)
 
     # Find the matching interval [x_i, x_{i+1}]
     for i in range(len(sorted_points) - 1):
@@ -65,13 +70,13 @@ def interpolate_curve(
 
         if x1 <= x_value <= x2:
             if x2 == x1:
-                return round(y1, round_decimals)
+                return round(y1, decimals)
             # Linear interpolation
             slope = (y2 - y1) / (x2 - x1)
             y = y1 + (x_value - x1) * slope
-            return round(y, round_decimals)
+            return round(y, decimals)
 
-    return round(last_y, round_decimals)
+    return round(last_y, decimals)
 
 
 class CurveControllerCoordinator:
@@ -120,17 +125,25 @@ class CurveControllerCoordinator:
     @property
     def update_interval(self) -> int:
         """Get update interval in seconds."""
-        return self.entry.options.get(
+        raw = self.entry.options.get(
             CONF_UPDATE_INTERVAL, self.entry.data.get(CONF_UPDATE_INTERVAL, 300)
         )
+        try:
+            return int(raw)
+        except (ValueError, TypeError):
+            return 300
 
     @property
     def round_decimals(self) -> int:
         """Get rounding precision."""
-        return self.entry.options.get(
+        raw = self.entry.options.get(
             CONF_ROUND_DECIMALS,
             self.entry.data.get(CONF_ROUND_DECIMALS, DEFAULT_ROUND_DECIMALS),
         )
+        try:
+            return int(raw)
+        except (ValueError, TypeError):
+            return DEFAULT_ROUND_DECIMALS
 
     async def async_setup(self) -> None:
         """Load stored curves and setup listeners."""
