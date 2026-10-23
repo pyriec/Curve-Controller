@@ -73,8 +73,17 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     card_path = Path(__file__).parent / "frontend" / CARD_JS_NAME
     if card_path.exists():
         url_path = f"{URL_BASE}/{CARD_JS_NAME}"
-        hass.http.register_static_path(url_path, str(card_path), cache_headers=False)
-        _LOGGER.debug("Registered static frontend card at %s", url_path)
+        try:
+            if hasattr(hass.http, "async_register_static_paths"):
+                from homeassistant.components.http import StaticPathConfig
+                await hass.http.async_register_static_paths([
+                    StaticPathConfig(url_path, str(card_path), cache_headers=False)
+                ])
+            elif hasattr(hass.http, "register_static_path"):
+                hass.http.register_static_path(url_path, str(card_path), cache_headers=False)
+            _LOGGER.debug("Registered static frontend card at %s", url_path)
+        except Exception as err:
+            _LOGGER.warning("Could not register static frontend path: %s", err)
 
         # Attempt automatic registration in Lovelace resources
         await _async_register_lovelace_resource(hass, url_path)
