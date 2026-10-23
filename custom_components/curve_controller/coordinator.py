@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import logging
+import time
+import copy
 from datetime import timedelta
 from typing import Any, Callable
 
@@ -98,6 +100,7 @@ class CurveControllerCoordinator:
         self.source_value: float | None = None
         self.calculated_value: float | None = None
         self.enabled: bool = True
+        self.version: int = 1
 
         self._listeners: list[Callable[[], None]] = []
         self._unsub_tracker: Callable[[], None] | None = None
@@ -268,6 +271,7 @@ class CurveControllerCoordinator:
     async def async_set_enabled(self, enabled: bool) -> None:
         """Enable or disable regulation output injection."""
         self.enabled = bool(enabled)
+        self.version += 1
         await self._async_save_to_storage()
         if self.enabled:
             await self.async_evaluate()
@@ -285,6 +289,7 @@ class CurveControllerCoordinator:
             raise HomeAssistantError(f"Curve '{curve_name}' does not exist.")
 
         self.active_curve = curve_name
+        self.version += 1
         await self._async_save_to_storage()
         await self.async_evaluate()
         self.notify_listeners()
@@ -307,7 +312,10 @@ class CurveControllerCoordinator:
         # Sort points by X
         cleaned_points.sort(key=lambda p: p[0])
 
-        self.curves[curve_name] = cleaned_points
+        new_curves = {k: [list(p) for p in v] for k, v in self.curves.items()}
+        new_curves[curve_name] = cleaned_points
+        self.curves = new_curves
+        self.version += 1
 
         if set_active or not self.active_curve or self.active_curve not in self.curves:
             self.active_curve = curve_name
@@ -316,10 +324,11 @@ class CurveControllerCoordinator:
         await self.async_evaluate()
         self.notify_listeners()
         _LOGGER.info(
-            "Saved curve '%s' with %d points for %s",
+            "Saved curve '%s' with %d points for %s (v%d)",
             curve_name,
             len(cleaned_points),
             self.entry.title,
+            self.version,
         )
 
     async def async_delete_curve(self, curve_name: str) -> None:
@@ -330,7 +339,9 @@ class CurveControllerCoordinator:
         if len(self.curves) <= 1:
             raise HomeAssistantError("Cannot delete the only remaining curve.")
 
-        del self.curves[curve_name]
+        new_curves = {k: [list(p) for p in v] for k, v in self.curves.items() if k != curve_name}
+        self.curves = new_curves
+        self.version += 1
 
         if self.active_curve == curve_name:
             self.active_curve = next(iter(self.curves.keys()))
@@ -338,7 +349,7 @@ class CurveControllerCoordinator:
         await self._async_save_to_storage()
         await self.async_evaluate()
         self.notify_listeners()
-        _LOGGER.info("Deleted curve '%s' from %s", curve_name, self.entry.title)
+        _LOGGER.info("Deleted curve '%s' from %s (v%d)", curve_name, self.entry.title, self.version)
 
     async def async_evaluate(self) -> None:
         """Read source entity, interpolate according to active curve, and set target."""

@@ -70,7 +70,10 @@ class CurveControllerSelectEntity(SelectEntity):
         return {
             ATTR_ENTRY_ID: self.coordinator.entry_id,
             ATTR_ACTIVE_CURVE: self.coordinator.active_curve,
-            ATTR_CURVES: self.coordinator.curves,
+            ATTR_CURVES: {
+                k: [list(pt) for pt in v] for k, v in self.coordinator.curves.items()
+            },
+            "curves_version": self.coordinator.version,
         }
 
     async def async_select_option(self, option: str) -> None:

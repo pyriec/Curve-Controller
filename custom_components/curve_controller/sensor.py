@@ -78,7 +78,10 @@ class CurveControllerOutputSensor(SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes for Lovelace card and automations."""
-        active_points = self.coordinator.curves.get(self.coordinator.active_curve, [])
+        active_points = [
+            list(pt)
+            for pt in self.coordinator.curves.get(self.coordinator.active_curve, [])
+        ]
         return {
             ATTR_ENTRY_ID: self.coordinator.entry_id,
             ATTR_ACTIVE_CURVE: self.coordinator.active_curve,
@@ -89,8 +92,11 @@ class CurveControllerOutputSensor(SensorEntity):
             ATTR_TARGET_UNIT: self.coordinator.target_unit,
             ATTR_CALCULATED_VALUE: self.coordinator.calculated_value,
             ATTR_POINTS_LIST: active_points,
-            ATTR_CURVES: self.coordinator.curves,
+            ATTR_CURVES: {
+                k: [list(pt) for pt in v] for k, v in self.coordinator.curves.items()
+            },
             ATTR_REGULATION_ENABLED: self.coordinator.enabled,
+            "curves_version": self.coordinator.version,
         }
 
     async def async_added_to_hass(self) -> None:

@@ -97,16 +97,36 @@ Si votre tableau de bord est en mode YAML ou si vous souhaitez ajouter manuellem
 
 ### Exemple d'ajout sur votre Tableau de Bord Lovelace
 
-#### Mode Interface (UI)
+#### Mode Interface (UI Visuelle)
 1. Modifiez votre tableau de bord Lovelace.
-2. Cliquez sur **Ajouter une carte** et choisissez **Curve Controller Card** (ou ajoutez une carte **Manuel**).
+2. Cliquez sur **Ajouter une carte** et sélectionnez **Curve Controller Card**.
+3. Configurez visuellement la carte via les options disponibles :
+   - **Entité :** Sélection de l'entité `sensor.curve_controller_*` dans la liste déroulante.
+   - **Titre :** Personnalisation du titre de la carte.
+   - **Couleur de la courbe :** Code couleur hexadécimal (défaut : `#03a9f4`).
+   - **Couleur du marqueur :** Code couleur hexadécimal (défaut : `#ff9800`).
+   - **Interrupteurs d'affichage :**
+     - *Bouton On/Off de régulation* (en-tête).
+     - *Éditeur et tableau des points* (masquable pour une vue consultation seule).
+     - *Surface sous la courbe* (dégradé SVG).
+     - *Grille cartésienne*.
+     - *Étiquettes de valeurs en direct sur les axes*.
+     - *Marqueur dynamique temps réel*.
 
-#### Configuration YAML
+#### Configuration YAML (Optionnelle)
 
 ```yaml
 type: custom:curve-controller-card
-title: "Loi d'eau - Chauffage"
 entity: sensor.curve_controller_calculated_output
+title: "Loi d'eau - Chauffage"
+curve_color: "#03a9f4"
+marker_color: "#ff9800"
+show_regulation_toggle: true
+show_points_editor: true
+show_area: true
+show_grid: true
+show_axis_badges: true
+show_marker: true
 ```
 
 ### Fonctionnalités de la carte :

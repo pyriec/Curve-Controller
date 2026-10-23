@@ -103,52 +103,75 @@ class CurveControllerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return CurveControllerOptionsFlow(config_entry)
 
 
-class CurveControllerOptionsFlow(config_entries.OptionsFlow):
-    """Handle options flow for Curve Controller."""
+if hasattr(config_entries, "OptionsFlowWithConfigEntry"):
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
+    class CurveControllerOptionsFlow(config_entries.OptionsFlowWithConfigEntry):
+        """Handle options flow for Curve Controller."""
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.ConfigFlowResult:
-        """Manage options."""
-        if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+        async def async_step_init(
+            self, user_input: dict[str, Any] | None = None
+        ) -> config_entries.ConfigFlowResult:
+            """Manage options."""
+            if user_input is not None:
+                return self.async_create_entry(title="", data=user_input)
 
-        current_source = self.config_entry.options.get(
-            CONF_SOURCE_ENTITY,
-            self.config_entry.data.get(CONF_SOURCE_ENTITY),
-        )
-        current_target = self.config_entry.options.get(
-            CONF_TARGET_ENTITY,
-            self.config_entry.data.get(CONF_TARGET_ENTITY),
-        )
-        current_mode = self.config_entry.options.get(
-            CONF_EVAL_MODE,
-            self.config_entry.data.get(CONF_EVAL_MODE, DEFAULT_EVAL_MODE),
-        )
-        current_interval = self.config_entry.options.get(
-            CONF_UPDATE_INTERVAL,
-            self.config_entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
-        )
-        current_decimals = self.config_entry.options.get(
-            CONF_ROUND_DECIMALS,
-            self.config_entry.data.get(CONF_ROUND_DECIMALS, DEFAULT_ROUND_DECIMALS),
-        )
+            current_source = self.config_entry.options.get(
+                CONF_SOURCE_ENTITY,
+                self.config_entry.data.get(CONF_SOURCE_ENTITY, ""),
+            )
+            current_target = self.config_entry.options.get(
+                CONF_TARGET_ENTITY,
+                self.config_entry.data.get(CONF_TARGET_ENTITY, ""),
+            )
+            current_mode = self.config_entry.options.get(
+                CONF_EVAL_MODE,
+                self.config_entry.data.get(CONF_EVAL_MODE, DEFAULT_EVAL_MODE),
+            )
+            try:
+                current_interval = int(
+                    self.config_entry.options.get(
+                        CONF_UPDATE_INTERVAL,
+                        self.config_entry.data.get(
+                            CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+                        ),
+                    )
+                )
+            except (ValueError, TypeError):
+                current_interval = DEFAULT_UPDATE_INTERVAL
 
-        data_schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_SOURCE_ENTITY, default=current_source
-                ): selector.EntitySelector(selector.EntitySelectorConfig()),
-                vol.Required(
-                    CONF_TARGET_ENTITY, default=current_target
-                ): selector.EntitySelector(selector.EntitySelectorConfig()),
-                vol.Required(
-                    CONF_EVAL_MODE, default=current_mode
-                ): selector.SelectSelector(
+            try:
+                current_decimals = int(
+                    self.config_entry.options.get(
+                        CONF_ROUND_DECIMALS,
+                        self.config_entry.data.get(
+                            CONF_ROUND_DECIMALS, DEFAULT_ROUND_DECIMALS
+                        ),
+                    )
+                )
+            except (ValueError, TypeError):
+                current_decimals = DEFAULT_ROUND_DECIMALS
+
+            fields: dict[Any, Any] = {}
+            if current_source:
+                fields[vol.Required(CONF_SOURCE_ENTITY, default=current_source)] = (
+                    selector.EntitySelector(selector.EntitySelectorConfig())
+                )
+            else:
+                fields[vol.Required(CONF_SOURCE_ENTITY)] = selector.EntitySelector(
+                    selector.EntitySelectorConfig()
+                )
+
+            if current_target:
+                fields[vol.Required(CONF_TARGET_ENTITY, default=current_target)] = (
+                    selector.EntitySelector(selector.EntitySelectorConfig())
+                )
+            else:
+                fields[vol.Required(CONF_TARGET_ENTITY)] = selector.EntitySelector(
+                    selector.EntitySelectorConfig()
+                )
+
+            fields[vol.Required(CONF_EVAL_MODE, default=current_mode)] = (
+                selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
                             selector.SelectOptionDict(
@@ -162,10 +185,10 @@ class CurveControllerOptionsFlow(config_entries.OptionsFlow):
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
-                ),
-                vol.Optional(
-                    CONF_UPDATE_INTERVAL, default=current_interval
-                ): selector.NumberSelector(
+                )
+            )
+            fields[vol.Optional(CONF_UPDATE_INTERVAL, default=current_interval)] = (
+                selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=5,
                         max=86400,
@@ -173,19 +196,135 @@ class CurveControllerOptionsFlow(config_entries.OptionsFlow):
                         unit_of_measurement="sec",
                         mode=selector.NumberSelectorMode.BOX,
                     )
-                ),
-                vol.Optional(
-                    CONF_ROUND_DECIMALS, default=current_decimals
-                ): selector.NumberSelector(
+                )
+            )
+            fields[vol.Optional(CONF_ROUND_DECIMALS, default=current_decimals)] = (
+                selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=0,
                         max=4,
                         step=1,
                         mode=selector.NumberSelectorMode.BOX,
                     )
-                ),
-            }
-        )
+                )
+            )
 
-        return self.async_show_form(step_id="init", data_schema=data_schema)
+            return self.async_show_form(step_id="init", data_schema=vol.Schema(fields))
+
+else:
+
+    class CurveControllerOptionsFlow(config_entries.OptionsFlow):
+        """Handle options flow for older Home Assistant versions."""
+
+        def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+            """Initialize options flow."""
+            self._config_entry = config_entry
+
+        @property
+        def config_entry(self) -> config_entries.ConfigEntry:
+            """Return config entry."""
+            return self._config_entry
+
+        async def async_step_init(
+            self, user_input: dict[str, Any] | None = None
+        ) -> config_entries.ConfigFlowResult:
+            """Manage options."""
+            if user_input is not None:
+                return self.async_create_entry(title="", data=user_input)
+
+            current_source = self.config_entry.options.get(
+                CONF_SOURCE_ENTITY,
+                self.config_entry.data.get(CONF_SOURCE_ENTITY, ""),
+            )
+            current_target = self.config_entry.options.get(
+                CONF_TARGET_ENTITY,
+                self.config_entry.data.get(CONF_TARGET_ENTITY, ""),
+            )
+            current_mode = self.config_entry.options.get(
+                CONF_EVAL_MODE,
+                self.config_entry.data.get(CONF_EVAL_MODE, DEFAULT_EVAL_MODE),
+            )
+            try:
+                current_interval = int(
+                    self.config_entry.options.get(
+                        CONF_UPDATE_INTERVAL,
+                        self.config_entry.data.get(
+                            CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL
+                        ),
+                    )
+                )
+            except (ValueError, TypeError):
+                current_interval = DEFAULT_UPDATE_INTERVAL
+
+            try:
+                current_decimals = int(
+                    self.config_entry.options.get(
+                        CONF_ROUND_DECIMALS,
+                        self.config_entry.data.get(
+                            CONF_ROUND_DECIMALS, DEFAULT_ROUND_DECIMALS
+                        ),
+                    )
+                )
+            except (ValueError, TypeError):
+                current_decimals = DEFAULT_ROUND_DECIMALS
+
+            fields: dict[Any, Any] = {}
+            if current_source:
+                fields[vol.Required(CONF_SOURCE_ENTITY, default=current_source)] = (
+                    selector.EntitySelector(selector.EntitySelectorConfig())
+                )
+            else:
+                fields[vol.Required(CONF_SOURCE_ENTITY)] = selector.EntitySelector(
+                    selector.EntitySelectorConfig()
+                )
+
+            if current_target:
+                fields[vol.Required(CONF_TARGET_ENTITY, default=current_target)] = (
+                    selector.EntitySelector(selector.EntitySelectorConfig())
+                )
+            else:
+                fields[vol.Required(CONF_TARGET_ENTITY)] = selector.EntitySelector(
+                    selector.EntitySelectorConfig()
+                )
+
+            fields[vol.Required(CONF_EVAL_MODE, default=current_mode)] = (
+                selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(
+                                value=EVAL_MODE_STATE_CHANGE,
+                                label="À chaque changement d'état de l'entrée",
+                            ),
+                            selector.SelectOptionDict(
+                                value=EVAL_MODE_INTERVAL,
+                                label="Périodique (intervalle régulier)",
+                            ),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                )
+            )
+            fields[vol.Optional(CONF_UPDATE_INTERVAL, default=current_interval)] = (
+                selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=5,
+                        max=86400,
+                        step=5,
+                        unit_of_measurement="sec",
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
+                )
+            )
+            fields[vol.Optional(CONF_ROUND_DECIMALS, default=current_decimals)] = (
+                selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0,
+                        max=4,
+                        step=1,
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
+                )
+            )
+
+            return self.async_show_form(step_id="init", data_schema=vol.Schema(fields))
 
