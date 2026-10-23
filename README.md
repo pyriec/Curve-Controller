@@ -1,10 +1,10 @@
 # Curve Controller pour Home Assistant
 
 [![HACS Badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://github.com/hacs/default)
-[![GitHub Release](https://img.shields.io/github/v/release/pyrie/ha-curve-controller?style=for-the-badge&color=blue)](https://github.com/pyrie/ha-curve-controller/releases)
+[![GitHub Release](https://img.shields.io/github/v/release/pyriec/Curve-Controller?style=for-the-badge&color=blue)](https://github.com/pyriec/Curve-Controller/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)](LICENSE)
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=pyrie&repository=ha-curve-controller&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=pyriec&repository=Curve-Controller&category=integration)
 
 **Curve Controller** est une intégration Home Assistant personnalisée (custom integration) prête pour HACS avec sa carte Lovelace interactive dédiée. Elle permet de relier dynamiquement une **entité source** (ex. température extérieure, humidité, qualité de l'air) à une **entité cible** (consigne de chauffage, vitesse de VMC, position de volet, etc.) en appliquant une **courbe point par point** avec interpolation linéaire par morceaux et clamping automatique.
 
@@ -50,18 +50,18 @@ Pour une série de points $(X_0, Y_0), (X_1, Y_1), \dots, (X_{n-1}, Y_{n-1})$ or
 
 1. Cliquez sur le badge interactif ci-dessous pour ouvrir directement le dépôt dans votre Home Assistant :
 
-   [![Ouvrir dans Home Assistant](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=pyrie&repository=ha-curve-controller&category=integration)
+   [![Ouvrir dans Home Assistant](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=pyriec&repository=Curve-Controller&category=integration)
 
 2. Ou manuellement dans HACS :
    - Ouvrez **HACS** > Menu 3 points (en haut à droite) > **Dépôts personnalisés**.
-   - Collez l'URL : `https://github.com/pyrie/ha-curve-controller`.
+   - Collez l'URL : `https://github.com/pyriec/Curve-Controller`.
    - Catégorie : **Intégration**.
    - Cliquez sur **Ajouter**, puis recherchez **Curve Controller** et cliquez sur **Télécharger**.
 3. Redémarrez Home Assistant.
 
 ### Méthode 2 : Installation Manuelle
 
-1. Téléchargez la dernière archive depuis la page [Releases](https://github.com/pyrie/ha-curve-controller/releases).
+1. Téléchargez la dernière archive depuis la page [Releases](https://github.com/pyriec/Curve-Controller/releases).
 2. Copiez le dossier `custom_components/curve_controller` dans le répertoire `<config>/custom_components/` de votre serveur Home Assistant.
 3. Redémarrez Home Assistant.
 
