@@ -1,0 +1,117 @@
+select_curve:
+  name: Sélectionner la courbe active
+  description: Bascule la courbe active pour une instance de Curve Controller.
+  fields:
+    curve_name:
+      name: Nom de la courbe
+      description: Nom de la courbe à activer (ex. Hiver, Été, Nuit, Absent).
+      required: true
+      example: "Hiver"
+      selector:
+        text:
+    entry_id:
+      name: Identifiant de configuration (Entry ID)
+      description: Identifiant unique de l'instance Curve Controller.
+      required: false
+      example: "01J9XYZ..."
+      selector:
+        text:
+    entity_id:
+      name: Entité associée
+      description: Entité sensor ou select de l'instance Curve Controller.
+      required: false
+      example: "sensor.curve_controller_calculated_output"
+      selector:
+        entity:
+          domain:
+            - sensor
+            - select
+
+save_curve:
+  name: Sauvegarder une courbe
+  description: Crée ou met à jour les coordonnées d'une courbe (points X, Y).
+  fields:
+    curve_name:
+      name: Nom de la courbe
+      description: Nom de la courbe à enregistrer ou modifier.
+      required: true
+      example: "Hiver"
+      selector:
+        text:
+    points:
+      name: Liste des points [X, Y]
+      description: Liste ordonnée de points sous la forme [[X1, Y1], [X2, Y2], ...].
+      required: true
+      example: "[[-10, 50], [0, 40], [10, 30], [20, 20]]"
+      selector:
+        object:
+    set_active:
+      name: Activer immédiatement
+      description: Définir cette courbe comme la courbe active après sauvegarde.
+      required: false
+      default: false
+      selector:
+        boolean:
+    entry_id:
+      name: Identifiant de configuration (Entry ID)
+      description: Identifiant unique de l'instance Curve Controller.
+      required: false
+      selector:
+        text:
+    entity_id:
+      name: Entité associée
+      description: Entité sensor ou select de l'instance Curve Controller.
+      required: false
+      selector:
+        entity:
+          domain:
+            - sensor
+            - select
+
+delete_curve:
+  name: Supprimer une courbe
+  description: Supprime une courbe existante d'une instance Curve Controller.
+  fields:
+    curve_name:
+      name: Nom de la courbe
+      description: Nom de la courbe à supprimer.
+      required: true
+      example: "Nuit"
+      selector:
+        text:
+    entry_id:
+      name: Identifiant de configuration (Entry ID)
+      description: Identifiant unique de l'instance Curve Controller.
+      required: false
+      selector:
+        text:
+    entity_id:
+      name: Entité associée
+      description: Entité sensor ou select de l'instance Curve Controller.
+      required: false
+      selector:
+        entity:
+          domain:
+            - sensor
+            - select
+
+evaluate:
+  name: Évaluer immédiatement
+  description: Force le recalcul immédiat de la consigne et sa transmission à la cible.
+  fields:
+    entry_id:
+      name: Identifiant de configuration (Entry ID)
+      description: Identifiant unique de l'instance Curve Controller.
+      required: false
+      selector:
+        text:
+    entity_id:
+      name: Entité associée
+      description: Entité sensor ou select de l'instance Curve Controller.
+      required: false
+      selector:
+        entity:
+          domain:
+            - sensor
+            - select
+

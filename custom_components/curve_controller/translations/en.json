@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure Curve Controller",
+        "description": "Dynamically map a source entity to a target setpoint using a piecewise linear curve.",
+        "data": {
+          "name": "Instance Name",
+          "source_entity": "Source Input Entity",
+          "target_entity": "Target Output Entity",
+          "eval_mode": "Trigger Evaluation Mode",
+          "update_interval": "Update Interval (seconds)",
+          "round_decimals": "Decimal Precision"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Curve Controller Options",
+        "description": "Adjust evaluation settings and linked entities.",
+        "data": {
+          "source_entity": "Source Input Entity",
+          "target_entity": "Target Output Entity",
+          "eval_mode": "Trigger Evaluation Mode",
+          "update_interval": "Update Interval (seconds)",
+          "round_decimals": "Decimal Precision"
+        }
+      }
+    }
+  }
+}
+

@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurer Curve Controller",
+        "description": "Liez dynamiquement une entité source à une entité cible en appliquant une courbe personnalisée par morceaux.",
+        "data": {
+          "name": "Nom de l'instance",
+          "source_entity": "Entité d'entrée (Source)",
+          "target_entity": "Entité de consigne (Cible)",
+          "eval_mode": "Mode de déclenchement",
+          "update_interval": "Intervalle de mise à jour (secondes)",
+          "round_decimals": "Nombre de décimales"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options Curve Controller",
+        "description": "Modifier les paramètres d'évaluation et les entités associées.",
+        "data": {
+          "source_entity": "Entité d'entrée (Source)",
+          "target_entity": "Entité de consigne (Cible)",
+          "eval_mode": "Mode de déclenchement",
+          "update_interval": "Intervalle de mise à jour (secondes)",
+          "round_decimals": "Nombre de décimales"
+        }
+      }
+    }
+  }
+}
+
