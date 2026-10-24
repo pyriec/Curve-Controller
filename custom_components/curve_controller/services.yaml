@@ -1,144 +1,254 @@
 select_curve:
-  name: Sélectionner la courbe active
-  description: Bascule la courbe active pour une instance de Curve Controller.
+  name: "Sélectionner la courbe active"
+  description: "Bascule la courbe active pour une ou plusieurs entités Curve Controller."
+  target:
+    entity:
+      integration: curve_controller
   fields:
     curve_name:
-      name: Nom de la courbe
-      description: Nom de la courbe à activer (ex. Hiver, Été, Nuit, Absent).
+      name: "Nom de la courbe"
+      description: "Choisissez une courbe dans la liste déroulante ou saisissez le nom d'une courbe personnalisée."
       required: true
       example: "Hiver"
       selector:
-        text:
-    entry_id:
-      name: Identifiant de configuration (Entry ID)
-      description: Identifiant unique de l'instance Curve Controller.
-      required: false
-      example: "01J9XYZ..."
-      selector:
-        text:
+        select:
+          options:
+            - "Hiver"
+            - "Été"
+            - "Nuit"
+            - "Absent"
+          custom_value: true
+          mode: dropdown
     entity_id:
-      name: Entité associée
-      description: Entité sensor ou select de l'instance Curve Controller.
+      name: "Entité(s) cible(s)"
+      description: "Entité(s) Curve Controller auxquelles appliquer ce changement (optionnel si la cible est définie ci-dessus)."
       required: false
-      example: "sensor.curve_controller_calculated_output"
       selector:
         entity:
-          domain:
-            - sensor
-            - select
+          integration: curve_controller
+          multiple: true
 
 save_curve:
-  name: Sauvegarder une courbe
-  description: Crée ou met à jour les coordonnées d'une courbe (points X, Y).
+  name: "Sauvegarder ou créer une courbe"
+  description: "Crée ou met à jour les coordonnées d'une courbe (points X, Y) pour une ou plusieurs entités."
+  target:
+    entity:
+      integration: curve_controller
   fields:
     curve_name:
-      name: Nom de la courbe
-      description: Nom de la courbe à enregistrer ou modifier.
+      name: "Nom de la courbe"
+      description: "Choisissez une courbe existante à remplacer ou tapez un nouveau nom."
       required: true
       example: "Hiver"
       selector:
-        text:
+        select:
+          options:
+            - "Hiver"
+            - "Été"
+            - "Nuit"
+            - "Absent"
+          custom_value: true
+          mode: dropdown
     points:
-      name: Liste des points [X, Y]
-      description: Liste ordonnée de points sous la forme [[X1, Y1], [X2, Y2], ...].
+      name: "Points de la courbe [X, Y]"
+      description: "Liste de coordonnées sous forme [[X, Y], ...], [{'x': X, 'y': Y}], ou texte (ex. '-10: 50, 0: 42, 10: 32, 20: 20')."
       required: true
-      example: "[[-10, 50], [0, 40], [10, 30], [20, 20]]"
+      example: "[[-15, 50], [0, 42], [10, 32], [20, 20]]"
       selector:
         object:
     set_active:
-      name: Activer immédiatement
-      description: Définir cette courbe comme la courbe active après sauvegarde.
+      name: "Activer immédiatement"
+      description: "Définir immédiatement cette courbe comme la courbe active après la sauvegarde."
       required: false
       default: false
       selector:
         boolean:
-    entry_id:
-      name: Identifiant de configuration (Entry ID)
-      description: Identifiant unique de l'instance Curve Controller.
-      required: false
-      selector:
-        text:
     entity_id:
-      name: Entité associée
-      description: Entité sensor ou select de l'instance Curve Controller.
+      name: "Entité(s) cible(s)"
+      description: "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus)."
       required: false
       selector:
         entity:
-          domain:
-            - sensor
-            - select
+          integration: curve_controller
+          multiple: true
 
 delete_curve:
-  name: Supprimer une courbe
-  description: Supprime une courbe existante d'une instance Curve Controller.
+  name: "Supprimer une courbe"
+  description: "Supprime une courbe existante d'une ou plusieurs entités Curve Controller."
+  target:
+    entity:
+      integration: curve_controller
   fields:
     curve_name:
-      name: Nom de la courbe
-      description: Nom de la courbe à supprimer.
+      name: "Nom de la courbe"
+      description: "Nom de la courbe à supprimer."
       required: true
       example: "Nuit"
       selector:
-        text:
-    entry_id:
-      name: Identifiant de configuration (Entry ID)
-      description: Identifiant unique de l'instance Curve Controller.
-      required: false
-      selector:
-        text:
+        select:
+          options:
+            - "Hiver"
+            - "Été"
+            - "Nuit"
+            - "Absent"
+          custom_value: true
+          mode: dropdown
     entity_id:
-      name: Entité associée
-      description: Entité sensor ou select de l'instance Curve Controller.
+      name: "Entité(s) cible(s)"
+      description: "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus)."
       required: false
       selector:
         entity:
-          domain:
-            - sensor
-            - select
+          integration: curve_controller
+          multiple: true
 
 evaluate:
-  name: Évaluer immédiatement
-  description: Force le recalcul immédiat de la consigne et sa transmission à la cible.
+  name: "Évaluer immédiatement"
+  description: "Force le recalcul immédiat de la consigne et sa transmission à la cible pour les entités sélectionnées."
+  target:
+    entity:
+      integration: curve_controller
   fields:
-    entry_id:
-      name: Identifiant de configuration (Entry ID)
-      description: Identifiant unique de l'instance Curve Controller.
-      required: false
-      selector:
-        text:
     entity_id:
-      name: Entité associée
-      description: Entité sensor ou select de l'instance Curve Controller.
+      name: "Entité(s) cible(s)"
+      description: "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus)."
       required: false
       selector:
         entity:
-          domain:
-            - sensor
-            - select
+          integration: curve_controller
+          multiple: true
 
 set_regulation:
-  name: Activer ou suspendre la régulation
-  description: Active ou met en pause l'injection des valeurs calculées vers l'entité cible.
+  name: "Activer ou suspendre la régulation"
+  description: "Active ou met en pause l'injection des valeurs calculées vers l'entité cible."
+  target:
+    entity:
+      integration: curve_controller
   fields:
     enabled:
-      name: Actif
-      description: Activer (vrai) ou suspendre (faux) la transmission vers la sortie cible.
+      name: "Régulation active"
+      description: "Activer (vrai) ou suspendre (faux) la transmission vers la sortie cible."
       required: true
+      default: true
       selector:
         boolean:
-    entry_id:
-      name: Identifiant de configuration (Entry ID)
-      description: Identifiant unique de l'instance Curve Controller.
-      required: false
-      selector:
-        text:
     entity_id:
-      name: Entité associée
-      description: Entité sensor, select ou switch de l'instance Curve Controller.
+      name: "Entité(s) cible(s)"
+      description: "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus)."
       required: false
       selector:
         entity:
-          domain:
-            - sensor
-            - select
-            - switch
+          integration: curve_controller
+          multiple: true
 
+adjust_curve_offset:
+  name: "Ajuster le décalage d'une courbe (Offset)"
+  description: "Décale verticalement tous les points Y d'une courbe (ex. +1.5 °C ou -2 °C) pour ajuster rapidement le confort."
+  target:
+    entity:
+      integration: curve_controller
+  fields:
+    offset:
+      name: "Valeur du décalage (Offset)"
+      description: "Valeur positive ou négative à ajouter à tous les points Y de la courbe."
+      required: true
+      example: 1.5
+      selector:
+        number:
+          min: -50
+          max: 50
+          step: 0.1
+          mode: box
+    curve_name:
+      name: "Nom de la courbe (optionnel)"
+      description: "Courbe à ajuster. Laissez vide pour appliquer directement à la courbe actuellement active de chaque entité."
+      required: false
+      selector:
+        select:
+          options:
+            - "Hiver"
+            - "Été"
+            - "Nuit"
+            - "Absent"
+          custom_value: true
+          mode: dropdown
+    entity_id:
+      name: "Entité(s) cible(s)"
+      description: "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus)."
+      required: false
+      selector:
+        entity:
+          integration: curve_controller
+          multiple: true
+
+copy_curve:
+  name: "Copier une courbe entre entités"
+  description: "Copie la configuration d'une courbe depuis une entité source vers une ou plusieurs entités cibles."
+  target:
+    entity:
+      integration: curve_controller
+  fields:
+    source_entity:
+      name: "Entité source"
+      description: "Entité Curve Controller d'origine contenant la courbe à dupliquer."
+      required: true
+      selector:
+        entity:
+          integration: curve_controller
+    curve_name:
+      name: "Nom de la courbe à copier"
+      description: "Nom de la courbe à dupliquer depuis l'entité source."
+      required: true
+      selector:
+        select:
+          options:
+            - "Hiver"
+            - "Été"
+            - "Nuit"
+            - "Absent"
+          custom_value: true
+          mode: dropdown
+    new_curve_name:
+      name: "Nouveau nom sur la cible (optionnel)"
+      description: "Nom de la courbe sur les entités cibles. Si non renseigné, le nom d'origine est conservé."
+      required: false
+      selector:
+        text:
+    set_active:
+      name: "Activer immédiatement sur les cibles"
+      description: "Définir comme courbe active sur les entités cibles."
+      required: false
+      default: false
+      selector:
+        boolean:
+    entity_id:
+      name: "Entité(s) cible(s)"
+      description: "Entité(s) Curve Controller de destination (optionnel si la cible est définie ci-dessus)."
+      required: false
+      selector:
+        entity:
+          integration: curve_controller
+          multiple: true
+
+reset_curves:
+  name: "Réinitialiser les courbes par défaut"
+  description: "Réinitialise toutes les courbes aux valeurs d'usine par défaut (Hiver, Été, Nuit, Absent) pour les entités sélectionnées."
+  target:
+    entity:
+      integration: curve_controller
+  fields:
+    confirm:
+      name: "Confirmer la réinitialisation"
+      description: "Cochez pour confirmer la réinitialisation aux courbes par défaut."
+      required: true
+      default: true
+      selector:
+        boolean:
+    entity_id:
+      name: "Entité(s) cible(s)"
+      description: "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus)."
+      required: false
+      selector:
+        entity:
+          integration: curve_controller
+          multiple: true

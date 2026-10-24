@@ -2,15 +2,15 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configurer Curve Controller",
-        "description": "Liez dynamiquement une entité source à une entité cible en appliquant une courbe personnalisée par morceaux.",
+        "title": "Configure Curve Controller",
+        "description": "Dynamically map a source entity to a target setpoint using a piecewise linear curve.",
         "data": {
-          "name": "Nom de l'instance",
-          "source_entity": "Entité d'entrée (Source)",
-          "target_entity": "Entité de consigne (Cible)",
-          "eval_mode": "Mode de déclenchement",
-          "update_interval": "Intervalle de mise à jour (secondes)",
-          "round_decimals": "Nombre de décimales"
+          "name": "Instance Name",
+          "source_entity": "Source Input Entity",
+          "target_entity": "Target Output Entity",
+          "eval_mode": "Trigger Evaluation Mode",
+          "update_interval": "Update Interval (seconds)",
+          "round_decimals": "Decimal Precision"
         }
       }
     }
@@ -18,17 +18,150 @@
   "options": {
     "step": {
       "init": {
-        "title": "Options Curve Controller",
-        "description": "Modifier les paramètres d'évaluation et les entités associées.",
+        "title": "Curve Controller Options",
+        "description": "Adjust evaluation settings and linked entities.",
         "data": {
-          "source_entity": "Entité d'entrée (Source)",
-          "target_entity": "Entité de consigne (Cible)",
-          "eval_mode": "Mode de déclenchement",
-          "update_interval": "Intervalle de mise à jour (secondes)",
-          "round_decimals": "Nombre de décimales"
+          "source_entity": "Source Input Entity",
+          "target_entity": "Target Output Entity",
+          "eval_mode": "Trigger Evaluation Mode",
+          "update_interval": "Update Interval (seconds)",
+          "round_decimals": "Decimal Precision"
+        }
+      }
+    }
+  },
+  "services": {
+    "select_curve": {
+      "name": "Select active curve",
+      "description": "Switch the active curve for one or multiple Curve Controller entities.",
+      "fields": {
+        "curve_name": {
+          "name": "Curve name",
+          "description": "Choose a curve from the dropdown or type a custom curve name."
+        },
+        "entity_id": {
+          "name": "Target entity/entities",
+          "description": "Curve Controller entities to apply to (optional if specified in Target)."
+        }
+      }
+    },
+    "save_curve": {
+      "name": "Save or create a curve",
+      "description": "Create or update coordinates of a curve (points X, Y) for one or multiple entities.",
+      "fields": {
+        "curve_name": {
+          "name": "Curve name",
+          "description": "Choose an existing curve to overwrite or type a new name."
+        },
+        "points": {
+          "name": "Curve points [X, Y]",
+          "description": "Coordinates list formatted as [[X, Y], ...], [{'x': X, 'y': Y}], or text (e.g. '-10: 50, 0: 42, 10: 32, 20: 20')."
+        },
+        "set_active": {
+          "name": "Set active immediately",
+          "description": "Set as the active curve right after saving."
+        },
+        "entity_id": {
+          "name": "Target entity/entities",
+          "description": "Curve Controller entities targeted (optional if specified in Target)."
+        }
+      }
+    },
+    "delete_curve": {
+      "name": "Delete a curve",
+      "description": "Delete an existing curve from one or multiple Curve Controller entities.",
+      "fields": {
+        "curve_name": {
+          "name": "Curve name",
+          "description": "Name of the curve to delete."
+        },
+        "entity_id": {
+          "name": "Target entity/entities",
+          "description": "Curve Controller entities targeted (optional if specified in Target)."
+        }
+      }
+    },
+    "evaluate": {
+      "name": "Evaluate immediately",
+      "description": "Force immediate recalculation and transmission of output value to target entities.",
+      "fields": {
+        "entity_id": {
+          "name": "Target entity/entities",
+          "description": "Curve Controller entities targeted (optional if specified in Target)."
+        }
+      }
+    },
+    "set_regulation": {
+      "name": "Enable or pause regulation",
+      "description": "Enable or pause calculated setpoint transmission to the target output entity.",
+      "fields": {
+        "enabled": {
+          "name": "Regulation active",
+          "description": "Enable (true) or pause (false) output transmission."
+        },
+        "entity_id": {
+          "name": "Target entity/entities",
+          "description": "Curve Controller entities targeted (optional if specified in Target)."
+        }
+      }
+    },
+    "adjust_curve_offset": {
+      "name": "Adjust curve offset",
+      "description": "Vertically shift all Y points of a curve (e.g. +1.5 °C or -2 °C) to quickly fine-tune comfort.",
+      "fields": {
+        "offset": {
+          "name": "Offset value",
+          "description": "Positive or negative value to add to all Y points of the curve."
+        },
+        "curve_name": {
+          "name": "Curve name (optional)",
+          "description": "Curve to adjust. Leave empty to apply to the active curve of each target."
+        },
+        "entity_id": {
+          "name": "Target entity/entities",
+          "description": "Curve Controller entities targeted (optional if specified in Target)."
+        }
+      }
+    },
+    "copy_curve": {
+      "name": "Copy curve between entities",
+      "description": "Copy a curve definition from a source entity to one or multiple target entities.",
+      "fields": {
+        "source_entity": {
+          "name": "Source entity",
+          "description": "Source Curve Controller entity containing the curve to duplicate."
+        },
+        "curve_name": {
+          "name": "Curve name to copy",
+          "description": "Name of the curve on the source entity."
+        },
+        "new_curve_name": {
+          "name": "New name on target (optional)",
+          "description": "Name on target entities. If empty, original name is retained."
+        },
+        "set_active": {
+          "name": "Set active immediately on targets",
+          "description": "Make this curve active immediately on destination entities."
+        },
+        "entity_id": {
+          "name": "Target entity/entities",
+          "description": "Destination Curve Controller entities (optional if specified in Target)."
+        }
+      }
+    },
+    "reset_curves": {
+      "name": "Reset default curves",
+      "description": "Reset all curves back to factory defaults (Hiver, Été, Nuit, Absent) for selected entities.",
+      "fields": {
+        "confirm": {
+          "name": "Confirm reset",
+          "description": "Check to confirm resetting curves to defaults."
+        },
+        "entity_id": {
+          "name": "Target entity/entities",
+          "description": "Curve Controller entities targeted (optional if specified in Target)."
         }
       }
     }
   }
 }
-

@@ -137,27 +137,39 @@ show_marker: true
 
 ---
 
-## 🛠️ Services Home Assistant
+## 🛠️ Actions & Services Home Assistant
 
-L'intégration expose 4 services sous le domaine `curve_controller` :
+Les services sont entièrement révisés pour une utilisation 100 % graphique, intuitive et native dans Home Assistant (**Outils de développement > Actions** ou éditeur visuel d'automatisations).
+
+### 🎯 Sélection des Cibles Restreinte et Multi-Entités
+- **Filtrage automatique :** Dans l'interface graphique, la sélection d'entités est automatiquement restreinte aux entités fournies par **Curve Controller** (aucun risque de sélectionner un capteur ou interrupteur tiers par erreur).
+- **Multi-sélection & Cibles groupées :** Vous pouvez sélectionner une ou **plusieurs entités en même temps** (ou un appareil / une zone).
+- **Adaptation & Détection des courbes communes :** Lors d'un ciblage multi-entités, l'action vérifie la présence de la courbe sur chaque contrôleur. Si la courbe n'est pas commune à toutes les entités sélectionnées, un message explicite liste les entités manquantes et rappelle toutes les courbes communes disponibles.
+- **Listes déroulantes dynamiques :** Les champs de sélection de courbe proposent directement un menu déroulant contenant les courbes existantes tout en autorisant la saisie libre.
+
+---
 
 ### 1. `curve_controller.select_curve`
-Bascule la courbe active en production.
+Bascule la courbe active pour une ou plusieurs entités Curve Controller.
 
 ```yaml
-service: curve_controller.select_curve
+action: curve_controller.select_curve
+target:
+  entity_id:
+    - select.chauffage_salon_active_curve
+    - select.chauffage_chambre_active_curve
 data:
-  entity_id: sensor.curve_controller_calculated_output
   curve_name: "Nuit"
 ```
 
 ### 2. `curve_controller.save_curve`
-Crée ou met à jour la liste des points d'une courbe.
+Crée ou met à jour les coordonnées d'une courbe (points X, Y). Synchronise instantanément la courbe sur toutes les entités ciblées.
 
 ```yaml
-service: curve_controller.save_curve
+action: curve_controller.save_curve
+target:
+  entity_id: select.chauffage_salon_active_curve
 data:
-  entity_id: sensor.curve_controller_calculated_output
   curve_name: "Grand Froid"
   points:
     - [-20, 60]
@@ -166,34 +178,74 @@ data:
     - [15, 25]
   set_active: true
 ```
+*Note : Le champ `points` accepte indifféremment des listes YAML `[[X, Y], ...]`, du JSON, ou une simple chaîne de texte (ex. `"-20: 60, -10: 52, 0: 44, 15: 25"`).*
 
 ### 3. `curve_controller.delete_curve`
-Supprime un profil de courbe existant.
+Supprime un profil de courbe existant sur les entités ciblées.
 
 ```yaml
-service: curve_controller.delete_curve
+action: curve_controller.delete_curve
+target:
+  entity_id: select.chauffage_salon_active_curve
 data:
-  entity_id: sensor.curve_controller_calculated_output
   curve_name: "Ancienne Courbe"
 ```
 
 ### 4. `curve_controller.evaluate`
-Force l'évaluation et l'application immédiate de la consigne cible.
+Force l'évaluation et l'application immédiate de la consigne cible sur les entités sélectionnées.
 
 ```yaml
-service: curve_controller.evaluate
-data:
-  entity_id: sensor.curve_controller_calculated_output
+action: curve_controller.evaluate
+target:
+  entity_id: sensor.chauffage_salon_calculated_output
 ```
 
 ### 5. `curve_controller.set_regulation`
-Active ou suspend l'injection de la consigne vers la cible (laisse la sortie à sa valeur actuelle).
+Active ou met en pause l'asservissement vers l'entité de consigne cible.
 
 ```yaml
-service: curve_controller.set_regulation
+action: curve_controller.set_regulation
+target:
+  entity_id: switch.chauffage_salon_regulation
 data:
-  entity_id: sensor.curve_controller_calculated_output
   enabled: false
+```
+
+### 6. `curve_controller.adjust_curve_offset`
+Ajuste le confort en décalant verticalement de +/- X unités (ex. +1.5 °C ou -2 °C) tous les points Y d'une courbe (ou de la courbe actuellement active si non spécifié) sur toutes les entités sélectionnées.
+
+```yaml
+action: curve_controller.adjust_curve_offset
+target:
+  entity_id:
+    - select.chauffage_salon_active_curve
+    - select.chauffage_chambre_active_curve
+data:
+  offset: 1.5
+```
+
+### 7. `curve_controller.copy_curve`
+Duplique une courbe depuis une entité Curve Controller source vers une ou plusieurs entités cibles.
+
+```yaml
+action: curve_controller.copy_curve
+target:
+  entity_id: select.chauffage_chambre_active_curve
+data:
+  source_entity: select.chauffage_salon_active_curve
+  curve_name: "Hiver"
+  set_active: true
+```
+
+### 8. `curve_controller.reset_curves`
+Rétablit les profils d'usine par défaut (*Hiver*, *Été*, *Nuit*, *Absent*) sur les entités sélectionnées.
+
+```yaml
+action: curve_controller.reset_curves
+target:
+  entity_id: select.chauffage_salon_active_curve
+data:
+  confirm: true
 ```
 
 ---

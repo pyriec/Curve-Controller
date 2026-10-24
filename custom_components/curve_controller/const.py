@@ -61,6 +61,9 @@ SERVICE_SAVE_CURVE = "save_curve"
 SERVICE_DELETE_CURVE = "delete_curve"
 SERVICE_EVALUATE = "evaluate"
 SERVICE_SET_REGULATION = "set_regulation"
+SERVICE_ADJUST_CURVE_OFFSET = "adjust_curve_offset"
+SERVICE_COPY_CURVE = "copy_curve"
+SERVICE_RESET_CURVES = "reset_curves"
 
 # Service / Event fields
 ATTR_CURVE_NAME = "curve_name"
@@ -68,6 +71,9 @@ ATTR_POINTS = "points"
 ATTR_SET_ACTIVE = "set_active"
 ATTR_ENTRY_ID = "entry_id"
 ATTR_ENABLED = "enabled"
+ATTR_OFFSET = "offset"
+ATTR_NEW_CURVE_NAME = "new_curve_name"
+ATTR_CONFIRM = "confirm"
 
 # Entity Attributes
 ATTR_ACTIVE_CURVE = "active_curve"

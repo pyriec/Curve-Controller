@@ -351,6 +351,59 @@ class CurveControllerCoordinator:
         self.notify_listeners()
         _LOGGER.info("Deleted curve '%s' from %s (v%d)", curve_name, self.entry.title, self.version)
 
+    async def async_offset_curve(
+        self,
+        offset: float,
+        curve_name: str | None = None,
+    ) -> None:
+        """Apply a vertical shift (offset) to all Y coordinates of a curve."""
+        target_curve = curve_name or self.active_curve
+        if not target_curve or target_curve not in self.curves:
+            raise HomeAssistantError(
+                f"Curve '{target_curve}' does not exist on {self.entry.title}."
+            )
+
+        points = self.curves[target_curve]
+        if not points:
+            raise HomeAssistantError(
+                f"Curve '{target_curve}' has no points on {self.entry.title}."
+            )
+
+        decimals = self.round_decimals
+        offset_points = [
+            [float(pt[0]), round(float(pt[1]) + float(offset), decimals)]
+            for pt in points
+        ]
+        offset_points.sort(key=lambda p: p[0])
+
+        new_curves = {k: [list(p) for p in v] for k, v in self.curves.items()}
+        new_curves[target_curve] = offset_points
+        self.curves = new_curves
+        self.version += 1
+
+        await self._async_save_to_storage()
+        await self.async_evaluate()
+        self.notify_listeners()
+        _LOGGER.info(
+            "Applied offset %.2f to curve '%s' on %s (v%d)",
+            offset,
+            target_curve,
+            self.entry.title,
+            self.version,
+        )
+
+    async def async_reset_curves(self) -> None:
+        """Reset curves back to default preset curves."""
+        self.curves = {k: [list(pt) for pt in v] for k, v in DEFAULT_CURVES.items()}
+        if self.active_curve not in self.curves:
+            self.active_curve = next(iter(self.curves.keys()), "Hiver")
+        self.version += 1
+
+        await self._async_save_to_storage()
+        await self.async_evaluate()
+        self.notify_listeners()
+        _LOGGER.info("Reset curves to default presets on %s", self.entry.title)
+
     async def async_evaluate(self) -> None:
         """Read source entity, interpolate according to active curve, and set target."""
         if not self.source_entity:

@@ -29,6 +29,139 @@
         }
       }
     }
+  },
+  "services": {
+    "select_curve": {
+      "name": "Sélectionner la courbe active",
+      "description": "Bascule la courbe active pour une ou plusieurs entités Curve Controller.",
+      "fields": {
+        "curve_name": {
+          "name": "Nom de la courbe",
+          "description": "Choisissez une courbe dans la liste déroulante ou saisissez le nom d'une courbe personnalisée."
+        },
+        "entity_id": {
+          "name": "Entité(s) cible(s)",
+          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
+        }
+      }
+    },
+    "save_curve": {
+      "name": "Sauvegarder ou créer une courbe",
+      "description": "Crée ou met à jour les coordonnées d'une courbe (points X, Y) pour une ou plusieurs entités.",
+      "fields": {
+        "curve_name": {
+          "name": "Nom de la courbe",
+          "description": "Choisissez une courbe existante à remplacer ou tapez un nouveau nom."
+        },
+        "points": {
+          "name": "Points de la courbe [X, Y]",
+          "description": "Coordonnées de la courbe sous forme [[X, Y], ...], [{'x': X, 'y': Y}], ou texte (ex. '-10: 50, 0: 42, 10: 32, 20: 20')."
+        },
+        "set_active": {
+          "name": "Activer immédiatement",
+          "description": "Définir immédiatement cette courbe comme la courbe active après sauvegarde."
+        },
+        "entity_id": {
+          "name": "Entité(s) cible(s)",
+          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
+        }
+      }
+    },
+    "delete_curve": {
+      "name": "Supprimer une courbe",
+      "description": "Supprime une courbe existante d'une ou plusieurs entités Curve Controller.",
+      "fields": {
+        "curve_name": {
+          "name": "Nom de la courbe",
+          "description": "Sélectionnez la courbe à supprimer."
+        },
+        "entity_id": {
+          "name": "Entité(s) cible(s)",
+          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
+        }
+      }
+    },
+    "evaluate": {
+      "name": "Évaluer immédiatement",
+      "description": "Force le recalcul immédiat de la consigne et sa transmission à la cible pour les entités sélectionnées.",
+      "fields": {
+        "entity_id": {
+          "name": "Entité(s) cible(s)",
+          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
+        }
+      }
+    },
+    "set_regulation": {
+      "name": "Activer ou suspendre la régulation",
+      "description": "Active ou met en pause l'injection des valeurs calculées vers l'entité cible.",
+      "fields": {
+        "enabled": {
+          "name": "Régulation active",
+          "description": "Activer (vrai) ou suspendre (faux) la transmission vers la sortie cible."
+        },
+        "entity_id": {
+          "name": "Entité(s) cible(s)",
+          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
+        }
+      }
+    },
+    "adjust_curve_offset": {
+      "name": "Ajuster le décalage d'une courbe (Offset)",
+      "description": "Décale verticalement tous les points Y d'une courbe (ex. +1.5 °C ou -2 °C) pour ajuster rapidement le confort.",
+      "fields": {
+        "offset": {
+          "name": "Valeur du décalage (Offset)",
+          "description": "Valeur positive ou négative à ajouter à tous les points Y de la courbe."
+        },
+        "curve_name": {
+          "name": "Nom de la courbe (optionnel)",
+          "description": "Courbe à ajuster. Laissez vide pour appliquer directement à la courbe actuellement active de chaque entité."
+        },
+        "entity_id": {
+          "name": "Entité(s) cible(s)",
+          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
+        }
+      }
+    },
+    "copy_curve": {
+      "name": "Copier une courbe entre entités",
+      "description": "Copie la configuration d'une courbe depuis une entité source vers une ou plusieurs entités cibles.",
+      "fields": {
+        "source_entity": {
+          "name": "Entité source",
+          "description": "Entité Curve Controller d'origine contenant la courbe à dupliquer."
+        },
+        "curve_name": {
+          "name": "Nom de la courbe à copier",
+          "description": "Nom de la courbe à dupliquer depuis l'entité source."
+        },
+        "new_curve_name": {
+          "name": "Nouveau nom sur la cible (optionnel)",
+          "description": "Nom de la courbe sur les entités cibles. Si non renseigné, le nom d'origine est conservé."
+        },
+        "set_active": {
+          "name": "Activer immédiatement sur les cibles",
+          "description": "Définir comme courbe active sur les entités cibles."
+        },
+        "entity_id": {
+          "name": "Entité(s) cible(s)",
+          "description": "Entités Curve Controller de destination (optionnel si défini dans Cible)."
+        }
+      }
+    },
+    "reset_curves": {
+      "name": "Réinitialiser les courbes par défaut",
+      "description": "Réinitialise toutes les courbes aux valeurs d'usine par défaut (Hiver, Été, Nuit, Absent) pour les entités sélectionnées.",
+      "fields": {
+        "confirm": {
+          "name": "Confirmer la réinitialisation",
+          "description": "Cochez pour confirmer la réinitialisation aux courbes par défaut."
+        },
+        "entity_id": {
+          "name": "Entité(s) cible(s)",
+          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
+        }
+      }
+    }
   }
 }
-
