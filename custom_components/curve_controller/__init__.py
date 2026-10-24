@@ -15,10 +15,19 @@ from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.service import (
-    async_extract_referenced_entity_ids,
-    async_set_service_schema,
-)
+
+try:
+    from homeassistant.helpers.target import async_extract_referenced_entity_ids
+except ImportError:
+    try:
+        from homeassistant.helpers.service import async_extract_referenced_entity_ids
+    except ImportError:
+        async_extract_referenced_entity_ids = None
+
+try:
+    from homeassistant.helpers.service import async_set_service_schema
+except ImportError:
+    async_set_service_schema = None
 
 from .const import (
     DOMAIN,
@@ -178,12 +187,13 @@ def _get_target_coordinators(
     entity_ids: set[str] = set()
 
     # 1. Standard HA target extraction (resolves entities, devices, areas)
-    try:
-        referenced = async_extract_referenced_entity_ids(hass, call)
-        entity_ids.update(referenced.referenced)
-        entity_ids.update(referenced.indirectly_referenced)
-    except Exception:
-        pass
+    if async_extract_referenced_entity_ids is not None:
+        try:
+            referenced = async_extract_referenced_entity_ids(hass, call)
+            entity_ids.update(referenced.referenced)
+            entity_ids.update(referenced.indirectly_referenced)
+        except Exception as err:
+            _LOGGER.debug("Target extraction error: %s", err)
 
     # 2. Check call.data entity_id (string or list)
     raw_entities = call.data.get("entity_id")
@@ -191,6 +201,15 @@ def _get_target_coordinators(
         entity_ids.add(raw_entities)
     elif isinstance(raw_entities, (list, set, tuple)):
         entity_ids.update(raw_entities)
+
+    # Also check if target dict is passed in call.data
+    target_data = call.data.get("target")
+    if isinstance(target_data, dict):
+        target_entities = target_data.get("entity_id")
+        if isinstance(target_entities, str):
+            entity_ids.add(target_entities)
+        elif isinstance(target_entities, (list, set, tuple)):
+            entity_ids.update(target_entities)
 
     # 3. Direct entry_id(s)
     raw_entries = call.data.get(ATTR_ENTRY_ID)
@@ -238,6 +257,8 @@ def _get_target_coordinators(
 @callback
 def async_update_services_schema(hass: HomeAssistant) -> None:
     """Dynamically update service schema options with all currently existing curve names."""
+    if async_set_service_schema is None:
+        return
     entries_dict: dict[str, CurveControllerCoordinator] = hass.data.get(DOMAIN, {})
     all_curves_set: set[str] = set()
     for coord in entries_dict.values():
