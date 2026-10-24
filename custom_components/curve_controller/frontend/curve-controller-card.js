@@ -1,7 +1,7 @@
 /**
  * Curve Controller Card for Home Assistant Lovelace
  * Custom Web Component for visualizing and interactively editing piecewise linear curves.
- * Version 1.2.1
+ * Version 1.3.0
  */
 
 class CurveControllerCard extends HTMLElement {
@@ -1448,7 +1448,7 @@ if (!customElements.get("curve-controller-card")) {
   });
 
   console.info(
-    `%c CURVE-CONTROLLER-CARD %c Version 1.2.1 `,
+    `%c CURVE-CONTROLLER-CARD %c Version 1.3.0 `,
     "color: white; background: #03a9f4; font-weight: 700; border-radius: 3px 0 0 3px;",
     "color: #03a9f4; background: #e1f5fe; font-weight: 700; border-radius: 0 3px 3px 0;"
   );
