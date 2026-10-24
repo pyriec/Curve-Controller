@@ -38,10 +38,6 @@
         "curve_name": {
           "name": "Nom de la courbe",
           "description": "Choisissez une courbe dans la liste déroulante ou saisissez le nom d'une courbe personnalisée."
-        },
-        "entity_id": {
-          "name": "Entité(s) cible(s)",
-          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
         }
       }
     },
@@ -60,10 +56,6 @@
         "set_active": {
           "name": "Activer immédiatement",
           "description": "Définir immédiatement cette courbe comme la courbe active après sauvegarde."
-        },
-        "entity_id": {
-          "name": "Entité(s) cible(s)",
-          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
         }
       }
     },
@@ -74,22 +66,12 @@
         "curve_name": {
           "name": "Nom de la courbe",
           "description": "Sélectionnez la courbe à supprimer."
-        },
-        "entity_id": {
-          "name": "Entité(s) cible(s)",
-          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
         }
       }
     },
     "evaluate": {
       "name": "Évaluer immédiatement",
-      "description": "Force le recalcul immédiat de la consigne et sa transmission à la cible pour les entités sélectionnées.",
-      "fields": {
-        "entity_id": {
-          "name": "Entité(s) cible(s)",
-          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
-        }
-      }
+      "description": "Force le recalcul immédiat de la consigne et sa transmission à la cible pour les entités sélectionnées."
     },
     "set_regulation": {
       "name": "Activer ou suspendre la régulation",
@@ -98,10 +80,6 @@
         "enabled": {
           "name": "Régulation active",
           "description": "Activer (vrai) ou suspendre (faux) la transmission vers la sortie cible."
-        },
-        "entity_id": {
-          "name": "Entité(s) cible(s)",
-          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
         }
       }
     },
@@ -116,10 +94,6 @@
         "curve_name": {
           "name": "Nom de la courbe (optionnel)",
           "description": "Courbe à ajuster. Laissez vide pour appliquer directement à la courbe actuellement active de chaque entité."
-        },
-        "entity_id": {
-          "name": "Entité(s) cible(s)",
-          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
         }
       }
     },
@@ -142,10 +116,6 @@
         "set_active": {
           "name": "Activer immédiatement sur les cibles",
           "description": "Définir comme courbe active sur les entités cibles."
-        },
-        "entity_id": {
-          "name": "Entité(s) cible(s)",
-          "description": "Entités Curve Controller de destination (optionnel si défini dans Cible)."
         }
       }
     },
@@ -156,10 +126,6 @@
         "confirm": {
           "name": "Confirmer la réinitialisation",
           "description": "Cochez pour confirmer la réinitialisation aux courbes par défaut."
-        },
-        "entity_id": {
-          "name": "Entité(s) cible(s)",
-          "description": "Entités Curve Controller ciblées (optionnel si défini dans Cible)."
         }
       }
     }

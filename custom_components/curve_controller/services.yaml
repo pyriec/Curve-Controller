@@ -20,15 +20,6 @@ select_curve:
             - "Absent"
           custom_value: true
           mode: dropdown
-    entity_id:
-      name: "Entité(s) cible(s)"
-      description: "Entité(s) Curve Controller auxquelles appliquer ce changement (optionnel si la cible est définie ci-dessus)."
-      required: false
-      selector:
-        entity:
-          integration: curve_controller
-          domain: select
-          multiple: true
 
 save_curve:
   name: "Sauvegarder ou créer une courbe"
@@ -66,15 +57,6 @@ save_curve:
       default: false
       selector:
         boolean:
-    entity_id:
-      name: "Entité(s) cible(s)"
-      description: "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus)."
-      required: false
-      selector:
-        entity:
-          integration: curve_controller
-          domain: select
-          multiple: true
 
 delete_curve:
   name: "Supprimer une courbe"
@@ -98,15 +80,6 @@ delete_curve:
             - "Absent"
           custom_value: true
           mode: dropdown
-    entity_id:
-      name: "Entité(s) cible(s)"
-      description: "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus)."
-      required: false
-      selector:
-        entity:
-          integration: curve_controller
-          domain: select
-          multiple: true
 
 evaluate:
   name: "Évaluer immédiatement"
@@ -115,16 +88,6 @@ evaluate:
     entity:
       integration: curve_controller
       domain: select
-  fields:
-    entity_id:
-      name: "Entité(s) cible(s)"
-      description: "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus)."
-      required: false
-      selector:
-        entity:
-          integration: curve_controller
-          domain: select
-          multiple: true
 
 set_regulation:
   name: "Activer ou suspendre la régulation"
@@ -141,15 +104,6 @@ set_regulation:
       default: true
       selector:
         boolean:
-    entity_id:
-      name: "Entité(s) cible(s)"
-      description: "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus)."
-      required: false
-      selector:
-        entity:
-          integration: curve_controller
-          domain: select
-          multiple: true
 
 adjust_curve_offset:
   name: "Ajuster le décalage d'une courbe (Offset)"
@@ -183,15 +137,6 @@ adjust_curve_offset:
             - "Absent"
           custom_value: true
           mode: dropdown
-    entity_id:
-      name: "Entité(s) cible(s)"
-      description: "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus)."
-      required: false
-      selector:
-        entity:
-          integration: curve_controller
-          domain: select
-          multiple: true
 
 copy_curve:
   name: "Copier une courbe entre entités"
@@ -235,15 +180,6 @@ copy_curve:
       default: false
       selector:
         boolean:
-    entity_id:
-      name: "Entité(s) cible(s)"
-      description: "Entité(s) Curve Controller de destination (optionnel si la cible est définie ci-dessus)."
-      required: false
-      selector:
-        entity:
-          integration: curve_controller
-          domain: select
-          multiple: true
 
 reset_curves:
   name: "Réinitialiser les courbes par défaut"
@@ -260,12 +196,3 @@ reset_curves:
       default: true
       selector:
         boolean:
-    entity_id:
-      name: "Entité(s) cible(s)"
-      description: "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus)."
-      required: false
-      selector:
-        entity:
-          integration: curve_controller
-          domain: select
-          multiple: true

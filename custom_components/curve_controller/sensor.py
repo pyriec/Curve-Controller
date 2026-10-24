@@ -44,7 +44,7 @@ async def async_setup_entry(
 class CurveControllerOutputSensor(SensorEntity):
     """Sensor reflecting the currently calculated setpoint value."""
 
-    _attr_has_entity_name = True
+    _attr_has_entity_name = False
     _attr_icon = "mdi:chart-timeline-variant"
     _attr_state_class = SensorStateClass.MEASUREMENT
 
@@ -56,14 +56,8 @@ class CurveControllerOutputSensor(SensorEntity):
         """Initialize the sensor entity."""
         self.coordinator = coordinator
         self.entry = entry
-        self._attr_name = "Calculated Output"
+        self._attr_name = f"{entry.title} Calculated Output"
         self._attr_unique_id = f"{entry.entry_id}_calculated_output"
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.title,
-            "manufacturer": "Curve Controller",
-            "model": "Piecewise Linear Controller",
-        }
 
     @property
     def native_value(self) -> float | None:

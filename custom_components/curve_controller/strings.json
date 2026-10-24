@@ -38,10 +38,6 @@
         "curve_name": {
           "name": "Curve name",
           "description": "Choose a curve from the dropdown or type a custom curve name."
-        },
-        "entity_id": {
-          "name": "Target entity/entities",
-          "description": "Curve Controller entities to apply to (optional if specified in Target)."
         }
       }
     },
@@ -60,10 +56,6 @@
         "set_active": {
           "name": "Set active immediately",
           "description": "Set as the active curve right after saving."
-        },
-        "entity_id": {
-          "name": "Target entity/entities",
-          "description": "Curve Controller entities targeted (optional if specified in Target)."
         }
       }
     },
@@ -74,22 +66,12 @@
         "curve_name": {
           "name": "Curve name",
           "description": "Name of the curve to delete."
-        },
-        "entity_id": {
-          "name": "Target entity/entities",
-          "description": "Curve Controller entities targeted (optional if specified in Target)."
         }
       }
     },
     "evaluate": {
       "name": "Evaluate immediately",
-      "description": "Force immediate recalculation and transmission of output value to target entities.",
-      "fields": {
-        "entity_id": {
-          "name": "Target entity/entities",
-          "description": "Curve Controller entities targeted (optional if specified in Target)."
-        }
-      }
+      "description": "Force immediate recalculation and transmission of output value to target entities."
     },
     "set_regulation": {
       "name": "Enable or pause regulation",
@@ -98,10 +80,6 @@
         "enabled": {
           "name": "Regulation active",
           "description": "Enable (true) or pause (false) output transmission."
-        },
-        "entity_id": {
-          "name": "Target entity/entities",
-          "description": "Curve Controller entities targeted (optional if specified in Target)."
         }
       }
     },
@@ -116,10 +94,6 @@
         "curve_name": {
           "name": "Curve name (optional)",
           "description": "Curve to adjust. Leave empty to apply to the active curve of each target."
-        },
-        "entity_id": {
-          "name": "Target entity/entities",
-          "description": "Curve Controller entities targeted (optional if specified in Target)."
         }
       }
     },
@@ -142,10 +116,6 @@
         "set_active": {
           "name": "Set active immediately on targets",
           "description": "Make this curve active immediately on destination entities."
-        },
-        "entity_id": {
-          "name": "Target entity/entities",
-          "description": "Destination Curve Controller entities (optional if specified in Target)."
         }
       }
     },
@@ -156,10 +126,6 @@
         "confirm": {
           "name": "Confirm reset",
           "description": "Check to confirm resetting curves to defaults."
-        },
-        "entity_id": {
-          "name": "Target entity/entities",
-          "description": "Curve Controller entities targeted (optional if specified in Target)."
         }
       }
     }

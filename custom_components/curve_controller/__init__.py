@@ -297,18 +297,6 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
                         }
                     },
                 },
-                "entity_id": {
-                    "name": "Entité(s) cible(s)",
-                    "description": "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus).",
-                    "required": False,
-                    "selector": {
-                        "entity": {
-                            "integration": DOMAIN,
-                            "domain": "select",
-                            "multiple": True,
-                        }
-                    },
-                },
             },
         },
     )
@@ -355,18 +343,6 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
                     "default": False,
                     "selector": {"boolean": {}},
                 },
-                "entity_id": {
-                    "name": "Entité(s) cible(s)",
-                    "description": "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus).",
-                    "required": False,
-                    "selector": {
-                        "entity": {
-                            "integration": DOMAIN,
-                            "domain": "select",
-                            "multiple": True,
-                        }
-                    },
-                },
             },
         },
     )
@@ -396,18 +372,6 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
                             "options": sorted_curves,
                             "custom_value": True,
                             "mode": "dropdown",
-                        }
-                    },
-                },
-                "entity_id": {
-                    "name": "Entité(s) cible(s)",
-                    "description": "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus).",
-                    "required": False,
-                    "selector": {
-                        "entity": {
-                            "integration": DOMAIN,
-                            "domain": "select",
-                            "multiple": True,
                         }
                     },
                 },
@@ -453,18 +417,6 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
                             "options": sorted_curves,
                             "custom_value": True,
                             "mode": "dropdown",
-                        }
-                    },
-                },
-                "entity_id": {
-                    "name": "Entité(s) cible(s)",
-                    "description": "Entité(s) Curve Controller ciblées (optionnel si la cible est définie ci-dessus).",
-                    "required": False,
-                    "selector": {
-                        "entity": {
-                            "integration": DOMAIN,
-                            "domain": "select",
-                            "multiple": True,
                         }
                     },
                 },
@@ -522,18 +474,6 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
                     "required": False,
                     "default": False,
                     "selector": {"boolean": {}},
-                },
-                "entity_id": {
-                    "name": "Entité(s) cible(s)",
-                    "description": "Entité(s) Curve Controller de destination (optionnel si la cible est définie ci-dessus).",
-                    "required": False,
-                    "selector": {
-                        "entity": {
-                            "integration": DOMAIN,
-                            "domain": "select",
-                            "multiple": True,
-                        }
-                    },
                 },
             },
         },
