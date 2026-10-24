@@ -280,6 +280,7 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
             "target": {
                 "entity": {
                     "integration": DOMAIN,
+                    "domain": "select",
                 }
             },
             "fields": {
@@ -303,6 +304,7 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
                     "selector": {
                         "entity": {
                             "integration": DOMAIN,
+                            "domain": "select",
                             "multiple": True,
                         }
                     },
@@ -322,6 +324,7 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
             "target": {
                 "entity": {
                     "integration": DOMAIN,
+                    "domain": "select",
                 }
             },
             "fields": {
@@ -359,6 +362,7 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
                     "selector": {
                         "entity": {
                             "integration": DOMAIN,
+                            "domain": "select",
                             "multiple": True,
                         }
                     },
@@ -378,6 +382,7 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
             "target": {
                 "entity": {
                     "integration": DOMAIN,
+                    "domain": "select",
                 }
             },
             "fields": {
@@ -401,6 +406,7 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
                     "selector": {
                         "entity": {
                             "integration": DOMAIN,
+                            "domain": "select",
                             "multiple": True,
                         }
                     },
@@ -420,6 +426,7 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
             "target": {
                 "entity": {
                     "integration": DOMAIN,
+                    "domain": "select",
                 }
             },
             "fields": {
@@ -456,6 +463,7 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
                     "selector": {
                         "entity": {
                             "integration": DOMAIN,
+                            "domain": "select",
                             "multiple": True,
                         }
                     },
@@ -475,6 +483,7 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
             "target": {
                 "entity": {
                     "integration": DOMAIN,
+                    "domain": "select",
                 }
             },
             "fields": {
@@ -485,6 +494,7 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
                     "selector": {
                         "entity": {
                             "integration": DOMAIN,
+                            "domain": "select",
                         }
                     },
                 },
@@ -520,6 +530,7 @@ def async_update_services_schema(hass: HomeAssistant) -> None:
                     "selector": {
                         "entity": {
                             "integration": DOMAIN,
+                            "domain": "select",
                             "multiple": True,
                         }
                     },

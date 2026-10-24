@@ -45,7 +45,7 @@ class CurveControllerSelectEntity(SelectEntity):
         """Initialize the select entity."""
         self.coordinator = coordinator
         self.entry = entry
-        self._attr_name = "Active Curve"
+        self._attr_name = None
         self._attr_unique_id = f"{entry.entry_id}_active_curve"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},

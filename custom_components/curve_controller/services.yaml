@@ -4,6 +4,7 @@ select_curve:
   target:
     entity:
       integration: curve_controller
+      domain: select
   fields:
     curve_name:
       name: "Nom de la courbe"
@@ -26,6 +27,7 @@ select_curve:
       selector:
         entity:
           integration: curve_controller
+          domain: select
           multiple: true
 
 save_curve:
@@ -34,6 +36,7 @@ save_curve:
   target:
     entity:
       integration: curve_controller
+      domain: select
   fields:
     curve_name:
       name: "Nom de la courbe"
@@ -70,6 +73,7 @@ save_curve:
       selector:
         entity:
           integration: curve_controller
+          domain: select
           multiple: true
 
 delete_curve:
@@ -78,6 +82,7 @@ delete_curve:
   target:
     entity:
       integration: curve_controller
+      domain: select
   fields:
     curve_name:
       name: "Nom de la courbe"
@@ -100,6 +105,7 @@ delete_curve:
       selector:
         entity:
           integration: curve_controller
+          domain: select
           multiple: true
 
 evaluate:
@@ -108,6 +114,7 @@ evaluate:
   target:
     entity:
       integration: curve_controller
+      domain: select
   fields:
     entity_id:
       name: "Entité(s) cible(s)"
@@ -116,6 +123,7 @@ evaluate:
       selector:
         entity:
           integration: curve_controller
+          domain: select
           multiple: true
 
 set_regulation:
@@ -124,6 +132,7 @@ set_regulation:
   target:
     entity:
       integration: curve_controller
+      domain: select
   fields:
     enabled:
       name: "Régulation active"
@@ -139,6 +148,7 @@ set_regulation:
       selector:
         entity:
           integration: curve_controller
+          domain: select
           multiple: true
 
 adjust_curve_offset:
@@ -147,6 +157,7 @@ adjust_curve_offset:
   target:
     entity:
       integration: curve_controller
+      domain: select
   fields:
     offset:
       name: "Valeur du décalage (Offset)"
@@ -179,6 +190,7 @@ adjust_curve_offset:
       selector:
         entity:
           integration: curve_controller
+          domain: select
           multiple: true
 
 copy_curve:
@@ -187,6 +199,7 @@ copy_curve:
   target:
     entity:
       integration: curve_controller
+      domain: select
   fields:
     source_entity:
       name: "Entité source"
@@ -195,6 +208,7 @@ copy_curve:
       selector:
         entity:
           integration: curve_controller
+          domain: select
     curve_name:
       name: "Nom de la courbe à copier"
       description: "Nom de la courbe à dupliquer depuis l'entité source."
@@ -228,6 +242,7 @@ copy_curve:
       selector:
         entity:
           integration: curve_controller
+          domain: select
           multiple: true
 
 reset_curves:
@@ -236,6 +251,7 @@ reset_curves:
   target:
     entity:
       integration: curve_controller
+      domain: select
   fields:
     confirm:
       name: "Confirmer la réinitialisation"
@@ -251,4 +267,5 @@ reset_curves:
       selector:
         entity:
           integration: curve_controller
+          domain: select
           multiple: true
