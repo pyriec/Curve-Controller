@@ -1,7 +1,7 @@
 /**
  * Curve Controller Card for Home Assistant Lovelace
  * Custom Web Component for visualizing and interactively editing piecewise linear curves.
- * Version 1.2.0
+ * Version 1.2.1
  */
 
 class CurveControllerCard extends HTMLElement {
@@ -1235,11 +1235,42 @@ class CurveControllerCardEditor extends HTMLElement {
 
   setConfig(config) {
     this._config = { ...config };
+    if (!this._config.entity && this._hass) {
+      const found = Object.keys(this._hass.states).find(
+        (eid) =>
+          eid.startsWith("sensor.curve_controller_") ||
+          (this._hass.states[eid].attributes &&
+            this._hass.states[eid].attributes.curves !== undefined &&
+            this._hass.states[eid].attributes.entry_id !== undefined)
+      );
+      if (found) {
+        this._config.entity = found;
+      }
+    }
     this._render();
   }
 
   set hass(hass) {
     this._hass = hass;
+    if (this._config && !this._config.entity) {
+      const found = Object.keys(this._hass.states).find(
+        (eid) =>
+          eid.startsWith("sensor.curve_controller_") ||
+          (this._hass.states[eid].attributes &&
+            this._hass.states[eid].attributes.curves !== undefined &&
+            this._hass.states[eid].attributes.entry_id !== undefined)
+      );
+      if (found) {
+        this._config.entity = found;
+        this.dispatchEvent(
+          new CustomEvent("config-changed", {
+            bubbles: true,
+            composed: true,
+            detail: { config: this._config },
+          })
+        );
+      }
+    }
     this._render();
   }
 
@@ -1262,13 +1293,27 @@ class CurveControllerCardEditor extends HTMLElement {
       });
     }
 
+    const controllerEntities = Object.keys(this._hass.states).filter(
+      (eid) =>
+        (eid.startsWith("sensor.curve_controller_") ||
+          (this._hass.states[eid].attributes &&
+            this._hass.states[eid].attributes.curves !== undefined &&
+            this._hass.states[eid].attributes.entry_id !== undefined))
+    );
+
+    const entitySelectorConfig = {
+      domain: "sensor",
+      integration: "curve_controller",
+    };
+    if (controllerEntities.length > 0) {
+      entitySelectorConfig.include_entities = controllerEntities;
+    }
+
     const schema = [
       {
         name: "entity",
         selector: {
-          entity: {
-            domain: ["sensor", "select"],
-          },
+          entity: entitySelectorConfig,
         },
       },
       {
@@ -1403,7 +1448,7 @@ if (!customElements.get("curve-controller-card")) {
   });
 
   console.info(
-    `%c CURVE-CONTROLLER-CARD %c Version 1.2.0 `,
+    `%c CURVE-CONTROLLER-CARD %c Version 1.2.1 `,
     "color: white; background: #03a9f4; font-weight: 700; border-radius: 3px 0 0 3px;",
     "color: #03a9f4; background: #e1f5fe; font-weight: 700; border-radius: 0 3px 3px 0;"
   );
