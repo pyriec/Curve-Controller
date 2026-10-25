@@ -28,7 +28,7 @@ async def async_setup_entry(
 class CurveControllerRegulationSwitch(SwitchEntity):
     """Switch entity to enable or pause regulation injection."""
 
-    _attr_has_entity_name = False
+    _attr_has_entity_name = True
     _attr_icon = "mdi:play-pause"
 
     def __init__(
@@ -39,8 +39,14 @@ class CurveControllerRegulationSwitch(SwitchEntity):
         """Initialize the switch entity."""
         self.coordinator = coordinator
         self.entry = entry
-        self._attr_name = f"{entry.title} Regulation"
+        self._attr_name = "Regulation"
         self._attr_unique_id = f"{entry.entry_id}_regulation"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, entry.entry_id)},
+            "name": entry.title,
+            "manufacturer": "Curve Controller",
+            "model": "Piecewise Linear Controller",
+        }
 
     @property
     def is_on(self) -> bool:
